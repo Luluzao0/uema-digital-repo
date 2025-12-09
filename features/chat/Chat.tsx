@@ -128,14 +128,14 @@ export const Chat: React.FC = () => {
 
   const createNewSession = async () => {
     const newSession: ChatSession = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       title: 'Nova Conversa',
       messages: [
         { 
-          id: '1', 
+          id: crypto.randomUUID(), 
           role: 'assistant', 
-          content: `Olá! Sou o assistente virtual da UEMA. ${documents.length > 0 ? `Tenho acesso a ${documents.length} documentos do repositório que posso usar para te ajudar melhor.` : ''} Como posso ajudar?`, 
-          timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
+          content: `Olá! Sou o assistente virtual da UEMA. ${documents.length > 0 ? `Tenho acesso a ${documents.length} documento(s) que posso consultar.` : ''} Como posso ajudar?`, 
+          timestamp: new Date().toISOString()
         }
       ],
       createdAt: new Date().toISOString(),
@@ -171,10 +171,10 @@ export const Chat: React.FC = () => {
     if (!text.trim() || !currentSession) return;
 
     const userMsg: ChatMessage = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       role: 'user',
       content: text,
-      timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+      timestamp: new Date().toISOString()
     };
 
     const updatedMessages = [...currentSession.messages, userMsg];
@@ -203,10 +203,10 @@ export const Chat: React.FC = () => {
     }
 
     const botMsg: ChatMessage = {
-      id: (Date.now() + 1).toString(),
+      id: crypto.randomUUID(),
       role: 'assistant',
       content: responseText,
-      timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+      timestamp: new Date().toISOString()
     };
 
     const finalSession = {

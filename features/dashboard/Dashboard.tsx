@@ -11,10 +11,14 @@ import {
   MessageSquare,
   TrendingUp,
   Calendar,
-  Sparkles
+  Sparkles,
+  RefreshCw,
+  Users,
+  Activity
 } from 'lucide-react';
 import { ViewState, Document, Process } from '../../types';
 import { storage } from '../../services/storage';
+import { supabase, realtimeService, isSupabaseConfigured } from '../../services/supabase';
 
 interface DashboardProps {
     onNavigate: (view: ViewState) => void;
@@ -128,35 +132,84 @@ const TimeDisplay = () => {
 
 export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [processes, setProcesses] = useState<Process[]>([]);
   const [stats, setStats] = useState({
     pendingDocs: 0,
     activeProcesses: 0,
-    completedProcesses: 0
+    completedProcesses: 0,
+    totalUsers: 0,
+    docsThisMonth: 0,
+    procsThisMonth: 0
   });
 
+  const loadData = async (showRefresh = false) => {
+    if (showRefresh) setIsRefreshing(true);
+    else setIsLoading(true);
+    
+    await storage.init();
+    
+    const [docs, procs] = await Promise.all([
+      storage.getDocuments(),
+      storage.getProcesses()
+    ]);
+    
+    setDocuments(docs);
+    setProcesses(procs);
+    
+    // Calcular estatísticas
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    const docsThisMonth = docs.filter(d => new Date(d.createdAt) >= firstDayOfMonth).length;
+    const procsThisMonth = procs.filter(p => new Date(p.lastUpdate) >= firstDayOfMonth).length;
+    
+    // Buscar contagem de usuários se Supabase configurado
+    let totalUsers = 0;
+    if (isSupabaseConfigured()) {
+      const { count } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+      totalUsers = count || 0;
+    }
+    
+    setStats({
+      pendingDocs: docs.filter(d => d.status === 'Draft').length,
+      activeProcesses: procs.filter(p => p.status === 'Pending' || p.status === 'In Progress').length,
+      completedProcesses: procs.filter(p => p.status === 'Approved').length,
+      totalUsers,
+      docsThisMonth,
+      procsThisMonth
+    });
+    
+    setIsLoading(false);
+    setIsRefreshing(false);
+  };
+
   useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      await storage.init();
-      
-      const [docs, procs] = await Promise.all([
-        storage.getDocuments(),
-        storage.getProcesses()
-      ]);
-      
-      setDocuments(docs);
-      setProcesses(procs);
-      setStats({
-        pendingDocs: docs.filter(d => d.status === 'Draft').length,
-        activeProcesses: procs.filter(p => p.status === 'Pending' || p.status === 'In Progress').length,
-        completedProcesses: procs.filter(p => p.status === 'Approved').length
+    loadData();
+    
+    // Inscrever para atualizações em tempo real
+    let docsChannel: any;
+    let procsChannel: any;
+    
+    if (isSupabaseConfigured()) {
+      docsChannel = realtimeService.subscribeToDocuments((payload) => {
+        console.log('Document change:', payload);
+        loadData(true);
       });
       
-      setIsLoading(false);
+      procsChannel = realtimeService.subscribeToProcesses((payload) => {
+        console.log('Process change:', payload);
+        loadData(true);
+      });
+    }
+    
+    return () => {
+      if (docsChannel) realtimeService.unsubscribe(docsChannel);
+      if (procsChannel) realtimeService.unsubscribe(procsChannel);
     };
-    loadData();
   }, []);
 
   // Recent tasks
@@ -217,11 +270,30 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       className="max-w-7xl mx-auto"
     >
       {/* Welcome Header */}
-      <motion.div variants={itemVariants} className="mb-8">
-        <h1 className="text-4xl font-bold text-white mb-2">
-          Bem-vindo ao <span className="text-blue-400">UEMA Digital</span>
-        </h1>
-        <p className="text-white/50">Gerencie seus documentos e processos com facilidade</p>
+      <motion.div variants={itemVariants} className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-4xl font-bold text-white mb-2">
+            Bem-vindo ao <span className="text-blue-400">UEMA Digital</span>
+          </h1>
+          <p className="text-white/50">Gerencie seus documentos e processos com facilidade</p>
+        </div>
+        <div className="flex items-center gap-3">
+          {isSupabaseConfigured() && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/20 rounded-full">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+              <span className="text-xs text-green-400 font-medium">Tempo Real</span>
+            </div>
+          )}
+          <motion.button
+            whileHover={{ scale: 1.05, rotate: 180 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => loadData(true)}
+            disabled={isRefreshing}
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw size={18} className={`text-white/70 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </motion.button>
+        </div>
       </motion.div>
 
       {/* Bento Grid */}
@@ -244,7 +316,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             value={documents.length}
             icon={FileText}
             gradient="gradient-blue"
-            trend="+12% este mês"
+            trend={stats.docsThisMonth > 0 ? `+${stats.docsThisMonth} este mês` : undefined}
             onClick={() => onNavigate('documents')}
           />
         </motion.div>
@@ -265,6 +337,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             value={stats.activeProcesses}
             icon={GitPullRequest}
             gradient="gradient-purple"
+            trend={stats.procsThisMonth > 0 ? `+${stats.procsThisMonth} este mês` : undefined}
             onClick={() => onNavigate('processes')}
           />
         </motion.div>
@@ -278,6 +351,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             onClick={() => onNavigate('processes')}
           />
         </motion.div>
+
+        {stats.totalUsers > 0 && (
+          <motion.div variants={itemVariants} className="lg:col-span-2">
+            <StatCard
+              label="Usuários Ativos"
+              value={stats.totalUsers}
+              icon={Users}
+              gradient="gradient-cyan"
+            />
+          </motion.div>
+        )}
 
         {/* Quick Actions */}
         <motion.div variants={itemVariants} className="lg:col-span-2">

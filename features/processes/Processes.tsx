@@ -17,9 +17,23 @@ import {
     GitBranch,
     Filter
 } from 'lucide-react';
-import { Process, SectorType } from '../../types';
+import { Process, SectorType, hasPermission, UserRole } from '../../types';
 import { showToast } from '../../App';
 import { storage } from '../../services/storage';
+
+// Obter role do usuário atual
+const getCurrentUserRole = (): UserRole => {
+  try {
+    const userData = localStorage.getItem('uema_user_data');
+    if (userData) {
+      const user = JSON.parse(userData);
+      return user.role || 'Viewer';
+    }
+  } catch {
+    // ignore
+  }
+  return 'Viewer';
+};
 
 // Workflow steps
 const WORKFLOW_STEPS = [
@@ -96,6 +110,12 @@ export const Processes: React.FC = () => {
   
   const [newProc, setNewProc] = useState({ title: '', sector: SectorType.PROPLAD, desc: '', priority: 'Medium' as 'Low' | 'Medium' | 'High' });
 
+  // Permissões do usuário atual
+  const userRole = getCurrentUserRole();
+  const canCreate = hasPermission(userRole, 'canCreateProcess');
+  const canApprove = hasPermission(userRole, 'canApproveProcess');
+  const canReject = hasPermission(userRole, 'canRejectProcess');
+
   useEffect(() => {
     const loadProcesses = async () => {
       setIsLoading(true);
@@ -109,7 +129,7 @@ export const Processes: React.FC = () => {
 
   const handleCreate = async () => {
     const p: Process = {
-        id: `p${Date.now()}`,
+        id: crypto.randomUUID(), // Gerar UUID válido
         number: `PROC-2025-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`,
         title: newProc.title,
         currentStep: WORKFLOW_STEPS[0],
@@ -251,15 +271,21 @@ export const Processes: React.FC = () => {
           </div>
         </div>
         
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => setIsCreateModalOpen(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl text-white font-medium shadow-lg shadow-blue-500/25"
-        >
-          <Plus className="w-5 h-5" />
-          Novo Processo
-        </motion.button>
+        {canCreate ? (
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setIsCreateModalOpen(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl text-white font-medium shadow-lg shadow-blue-500/25"
+          >
+            <Plus className="w-5 h-5" />
+            Novo Processo
+          </motion.button>
+        ) : (
+          <div className="px-4 py-2 bg-white/5 rounded-xl text-white/40 text-sm">
+            Sem permissão para criar
+          </div>
+        )}
       </motion.div>
 
       {/* Stats Summary */}

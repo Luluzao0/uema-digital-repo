@@ -1,13 +1,55 @@
 import { ChatSession, Document, Process, SectorType, User } from './types';
 
-export const CURRENT_USER: User = {
+// Usuário Admin (acesso total)
+export const ADMIN_USER: User = {
   id: 'u1',
   name: 'Luis Guilherme',
-  email: 'luis.lopes@uema.br',
-  role: 'Manager',
+  email: 'admin@uema.br',
+  role: 'Admin',
   sector: SectorType.PROGEP,
   avatarUrl: 'https://picsum.photos/id/1/200/200'
 };
+
+// Usuário Gestor (gerencia setor, sem acesso admin)
+export const MANAGER_USER: User = {
+  id: 'u2',
+  name: 'Maria Santos',
+  email: 'gestor@uema.br',
+  role: 'Manager',
+  sector: SectorType.PROPLAD,
+  avatarUrl: 'https://picsum.photos/id/64/200/200'
+};
+
+// Usuário Comum (apenas visualização e criação básica)
+export const OPERATOR_USER: User = {
+  id: 'u3',
+  name: 'João Silva',
+  email: 'usuario@uema.br',
+  role: 'Operator',
+  sector: SectorType.PROTOCOLO,
+  avatarUrl: 'https://picsum.photos/id/91/200/200'
+};
+
+// Usuário Visitante (somente leitura)
+export const VIEWER_USER: User = {
+  id: 'u4',
+  name: 'Ana Costa',
+  email: 'visitante@uema.br',
+  role: 'Viewer',
+  sector: SectorType.PROG,
+  avatarUrl: 'https://picsum.photos/id/177/200/200'
+};
+
+// Lista de todos os usuários demo
+export const DEMO_USERS = {
+  'admin@uema.br': ADMIN_USER,
+  'gestor@uema.br': MANAGER_USER,
+  'usuario@uema.br': OPERATOR_USER,
+  'visitante@uema.br': VIEWER_USER,
+};
+
+// Usuário padrão para compatibilidade
+export const CURRENT_USER: User = ADMIN_USER;
 
 export const MOCK_DOCS: Document[] = [
   {
@@ -107,6 +149,7 @@ export const MOCK_CHATS: ChatSession[] = [
     id: 'c1',
     title: 'Análise Edital Concurso',
     lastMessage: 'Quais são os prazos para recurso?',
+    createdAt: '2025-10-19T10:30:00Z',
     updatedAt: '10 min atrás',
     context: ['d1'],
     messages: [
@@ -135,6 +178,7 @@ export const MOCK_CHATS: ChatSession[] = [
     id: 'c2',
     title: 'Dúvidas Orçamento Q3',
     lastMessage: 'Obrigado pela análise.',
+    createdAt: '2025-10-18T14:20:00Z',
     updatedAt: 'Ontem',
     context: ['d2'],
     messages: [

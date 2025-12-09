@@ -175,25 +175,22 @@ const App: React.FC = () => {
   }
 
   const renderContent = () => {
-    const commonProps = { key: currentView };
-    
     switch (currentView) {
       case 'dashboard':
-        return <Dashboard onNavigate={setCurrentView} {...commonProps} />;
+        return <Dashboard onNavigate={setCurrentView} />;
       case 'documents':
-        return <Documents {...commonProps} />;
+        return <Documents />;
       case 'processes':
-        return <Processes {...commonProps} />;
+        return <Processes />;
       case 'reports':
-        return <Reports {...commonProps} />;
+        return <Reports />;
       case 'chat':
-        return <Chat {...commonProps} />;
+        return <Chat />;
       case 'settings':
-        return <Settings {...commonProps} />;
+        return <Settings />;
       default:
         return (
           <motion.div 
-            {...commonProps}
             variants={pageVariants}
             initial="initial"
             animate="animate"
