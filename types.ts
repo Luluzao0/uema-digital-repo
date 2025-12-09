@@ -54,7 +54,8 @@ export interface ChatMessage {
 export interface ChatSession {
   id: string;
   title: string;
-  lastMessage: string;
+  lastMessage?: string;
+  createdAt: string;
   updatedAt: string;
   context?: string[]; // IDs of documents in this context
   messages: ChatMessage[];

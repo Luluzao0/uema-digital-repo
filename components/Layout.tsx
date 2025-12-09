@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard, 
   FileText, 
@@ -12,10 +12,14 @@ import {
   ChevronDown,
   HelpCircle,
   Home,
-  BarChart3
+  BarChart3,
+  X,
+  FileSpreadsheet,
+  Loader2
 } from 'lucide-react';
-import { ViewState, User as UserType } from '../types';
+import { ViewState, User as UserType, Document, Process } from '../types';
 import { showToast } from '../App';
+import { storage } from '../services/storage';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -34,6 +38,11 @@ export const Layout: React.FC<LayoutProps> = ({
 }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<{ docs: Document[], processes: Process[] }>({ docs: [], processes: [] });
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
   
   const [notifications, setNotifications] = useState([
     { id: 1, text: 'Seu processo foi aprovado.', time: '2 min atrás', unread: true },
@@ -42,6 +51,64 @@ export const Layout: React.FC<LayoutProps> = ({
   ]);
 
   const unreadCount = notifications.filter(n => n.unread).length;
+
+  // Fechar busca ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSearchResults(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Busca global
+  useEffect(() => {
+    const performSearch = async () => {
+      if (searchQuery.length < 2) {
+        setSearchResults({ docs: [], processes: [] });
+        setShowSearchResults(false);
+        return;
+      }
+
+      setIsSearching(true);
+      setShowSearchResults(true);
+
+      await storage.init();
+      const [allDocs, allProcesses] = await Promise.all([
+        storage.getDocuments(),
+        storage.getProcesses()
+      ]);
+
+      const query = searchQuery.toLowerCase();
+      
+      const docs = allDocs.filter(d => 
+        d.title.toLowerCase().includes(query) ||
+        d.sector.toLowerCase().includes(query) ||
+        d.tags?.some(t => t.toLowerCase().includes(query)) ||
+        d.summary?.toLowerCase().includes(query)
+      ).slice(0, 5);
+
+      const processes = allProcesses.filter(p =>
+        p.title.toLowerCase().includes(query) ||
+        p.number.toLowerCase().includes(query) ||
+        p.currentStep.toLowerCase().includes(query)
+      ).slice(0, 5);
+
+      setSearchResults({ docs, processes });
+      setIsSearching(false);
+    };
+
+    const debounce = setTimeout(performSearch, 300);
+    return () => clearTimeout(debounce);
+  }, [searchQuery]);
+
+  const handleSearchResultClick = (type: 'document' | 'process') => {
+    setSearchQuery('');
+    setShowSearchResults(false);
+    onChangeView(type === 'document' ? 'documents' : 'processes');
+  };
 
   const markAllRead = () => {
     setNotifications(notifications.map(n => ({...n, unread: false})));
@@ -132,10 +199,88 @@ export const Layout: React.FC<LayoutProps> = ({
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Busca estilo input antigo */}
-            <div className="hidden md:flex items-center bg-black/10 rounded-sm px-2 py-1 border border-transparent focus-within:bg-white focus-within:text-black transition-all w-56">
-                <input type="text" placeholder="Pesquisar..." className="bg-transparent text-sm w-full outline-none text-white placeholder:text-blue-100 focus:text-black" />
-                <Search size={14} className="text-blue-100" />
+            {/* Busca Global */}
+            <div ref={searchRef} className="relative hidden md:block">
+                <div className="flex items-center bg-black/10 rounded-sm px-2 py-1 border border-transparent focus-within:bg-white focus-within:text-black transition-all w-64">
+                    <input 
+                      type="text" 
+                      placeholder="Buscar documentos e processos..." 
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      onFocus={() => searchQuery.length >= 2 && setShowSearchResults(true)}
+                      className="bg-transparent text-sm w-full outline-none text-white placeholder:text-blue-100 focus:text-black" 
+                    />
+                    {searchQuery ? (
+                      <button onClick={() => { setSearchQuery(''); setShowSearchResults(false); }} className="text-blue-100 hover:text-white">
+                        <X size={14} />
+                      </button>
+                    ) : (
+                      <Search size={14} className="text-blue-100" />
+                    )}
+                </div>
+
+                {/* Resultados da Busca */}
+                {showSearchResults && (
+                  <div className="absolute right-0 top-full mt-1 w-80 bg-white rounded-sm shadow-lg border border-gray-300 z-50 text-gray-800 max-h-96 overflow-y-auto">
+                    {isSearching ? (
+                      <div className="p-4 flex items-center justify-center gap-2 text-gray-500">
+                        <Loader2 size={16} className="animate-spin" />
+                        <span className="text-sm">Buscando...</span>
+                      </div>
+                    ) : (
+                      <>
+                        {searchResults.docs.length === 0 && searchResults.processes.length === 0 ? (
+                          <div className="p-4 text-center text-gray-500 text-sm">
+                            Nenhum resultado para "{searchQuery}"
+                          </div>
+                        ) : (
+                          <>
+                            {searchResults.docs.length > 0 && (
+                              <div>
+                                <div className="px-3 py-2 bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-600 uppercase flex items-center gap-1">
+                                  <FileText size={12} /> Documentos ({searchResults.docs.length})
+                                </div>
+                                {searchResults.docs.map(doc => (
+                                  <button 
+                                    key={doc.id}
+                                    onClick={() => handleSearchResultClick('document')}
+                                    className="w-full px-3 py-2 text-left hover:bg-blue-50 border-b border-gray-100 flex items-center gap-2"
+                                  >
+                                    {doc.type === 'XLSX' ? <FileSpreadsheet size={14} className="text-green-600" /> : <FileText size={14} className="text-red-500" />}
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm text-gray-800 font-medium truncate">{doc.title}</p>
+                                      <p className="text-xs text-gray-500">{doc.sector} • {doc.createdAt}</p>
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                            {searchResults.processes.length > 0 && (
+                              <div>
+                                <div className="px-3 py-2 bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-600 uppercase flex items-center gap-1">
+                                  <GitPullRequest size={12} /> Processos ({searchResults.processes.length})
+                                </div>
+                                {searchResults.processes.map(proc => (
+                                  <button 
+                                    key={proc.id}
+                                    onClick={() => handleSearchResultClick('process')}
+                                    className="w-full px-3 py-2 text-left hover:bg-blue-50 border-b border-gray-100 flex items-center gap-2"
+                                  >
+                                    <GitPullRequest size={14} className="text-blue-500" />
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm text-gray-800 font-medium truncate">{proc.title}</p>
+                                      <p className="text-xs text-gray-500">{proc.number} • {proc.status}</p>
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
             </div>
 
             {/* Notificações */}

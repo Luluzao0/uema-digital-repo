@@ -1,57 +1,167 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
     Plus, 
     ChevronRight, 
-    AlertCircle, 
     CheckCircle, 
     Clock, 
     XCircle,
     FileText,
     Search,
-    Filter,
     Calendar,
-    User
+    User,
+    Loader2,
+    ArrowRight,
+    X,
+    AlertTriangle,
+    GitBranch,
+    Filter
 } from 'lucide-react';
-import { MOCK_PROCESSES } from '../../constants';
 import { Process, SectorType } from '../../types';
-import { Modal } from '../../components/Modal';
 import { showToast } from '../../App';
+import { storage } from '../../services/storage';
+
+// Workflow steps
+const WORKFLOW_STEPS = [
+  'Triagem Inicial',
+  'Análise Documental',
+  'Parecer Técnico',
+  'Deliberação',
+  'Finalizado'
+];
+
+// Glass Modal Component
+const GlassModal = ({ 
+  isOpen, 
+  onClose, 
+  title, 
+  children,
+  size = 'md'
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  title: string; 
+  children: React.ReactNode;
+  size?: 'md' | 'lg';
+}) => (
+  <AnimatePresence>
+    {isOpen && (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      >
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          onClick={onClose}
+        />
+        
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          className={`relative w-full ${size === 'lg' ? 'max-w-2xl' : 'max-w-lg'} glass-strong rounded-3xl p-6 max-h-[90vh] overflow-y-auto`}
+        >
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-white">{title}</h2>
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={onClose}
+              className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+            >
+              <X className="w-4 h-4 text-white/70" />
+            </motion.button>
+          </div>
+          {children}
+        </motion.div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
 
 export const Processes: React.FC = () => {
-  const [processes, setProcesses] = useState<Process[]>(MOCK_PROCESSES);
+  const [processes, setProcesses] = useState<Process[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   
-  // Modals States
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
+  const [isAdvancing, setIsAdvancing] = useState(false);
   
-  // New Process Form
-  const [newProc, setNewProc] = useState({ title: '', sector: SectorType.PROPLAD, desc: '' });
+  const [newProc, setNewProc] = useState({ title: '', sector: SectorType.PROPLAD, desc: '', priority: 'Medium' as 'Low' | 'Medium' | 'High' });
 
-  const handleCreate = () => {
+  useEffect(() => {
+    const loadProcesses = async () => {
+      setIsLoading(true);
+      await storage.init();
+      const procs = await storage.getProcesses();
+      setProcesses(procs);
+      setIsLoading(false);
+    };
+    loadProcesses();
+  }, []);
+
+  const handleCreate = async () => {
     const p: Process = {
         id: `p${Date.now()}`,
-        number: `PROC-2025-${Math.floor(Math.random() * 9999)}`,
+        number: `PROC-2025-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`,
         title: newProc.title,
-        currentStep: 'Triagem Inicial',
+        currentStep: WORKFLOW_STEPS[0],
         status: 'Pending',
         assignedTo: newProc.sector,
         lastUpdate: new Date().toLocaleDateString('pt-BR'),
-        priority: 'Medium'
+        priority: newProc.priority
     };
+    
+    await storage.saveProcess(p);
     setProcesses([p, ...processes]);
     setIsCreateModalOpen(false);
-    setNewProc({ title: '', sector: SectorType.PROPLAD, desc: '' });
-    showToast('Processo iniciado com sucesso!');
+    setNewProc({ title: '', sector: SectorType.PROPLAD, desc: '', priority: 'Medium' });
+    showToast('Processo protocolado com sucesso!', 'success');
   };
 
-  const handleStatusChange = (status: 'Approved' | 'Rejected') => {
+  const handleAdvanceStep = async () => {
+    if (!selectedProcess) return;
+    
+    setIsAdvancing(true);
+    
+    const currentStepIndex = WORKFLOW_STEPS.indexOf(selectedProcess.currentStep);
+    const nextStepIndex = Math.min(currentStepIndex + 1, WORKFLOW_STEPS.length - 1);
+    const isLastStep = nextStepIndex === WORKFLOW_STEPS.length - 1;
+    
+    const updated: Process = {
+      ...selectedProcess,
+      currentStep: WORKFLOW_STEPS[nextStepIndex],
+      status: isLastStep ? 'Approved' : 'In Progress',
+      lastUpdate: new Date().toLocaleDateString('pt-BR')
+    };
+    
+    await storage.saveProcess(updated);
+    setProcesses(processes.map(p => p.id === updated.id ? updated : p));
+    setSelectedProcess(updated);
+    setIsAdvancing(false);
+    
+    showToast(isLastStep ? 'Processo finalizado!' : `Avançado para: ${WORKFLOW_STEPS[nextStepIndex]}`, 'success');
+  };
+
+  const handleStatusChange = async (status: 'Approved' | 'Rejected') => {
       if (!selectedProcess) return;
-      const updated = processes.map(p => 
-          p.id === selectedProcess.id ? { ...p, status: status, currentStep: status === 'Approved' ? 'Finalizado' : 'Arquivado', lastUpdate: new Date().toLocaleDateString('pt-BR') } : p
-      );
-      setProcesses(updated);
+      
+      const updated: Process = {
+          ...selectedProcess,
+          status,
+          currentStep: status === 'Approved' ? 'Finalizado' : 'Arquivado',
+          lastUpdate: new Date().toLocaleDateString('pt-BR')
+      };
+      
+      await storage.saveProcess(updated);
+      setProcesses(processes.map(p => p.id === updated.id ? updated : p));
       setSelectedProcess(null);
       showToast(status === 'Approved' ? 'Processo aprovado!' : 'Processo rejeitado.', status === 'Approved' ? 'success' : 'error');
   };
@@ -63,227 +173,410 @@ export const Processes: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusBadge = (status: string) => {
+  const getStatusConfig = (status: string) => {
     const config = {
-        'Approved': { color: 'bg-green-100 text-green-800 border-green-200', label: 'Aprovado' },
-        'Rejected': { color: 'bg-red-100 text-red-800 border-red-200', label: 'Rejeitado' },
-        'In Progress': { color: 'bg-blue-100 text-blue-800 border-blue-200', label: 'Em Andamento' },
-        'Pending': { color: 'bg-yellow-100 text-yellow-800 border-yellow-200', label: 'Pendente' }
+        'Approved': { color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30', label: 'Aprovado', icon: CheckCircle },
+        'Rejected': { color: 'bg-red-500/20 text-red-400 border-red-500/30', label: 'Rejeitado', icon: XCircle },
+        'In Progress': { color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', label: 'Em Andamento', icon: Clock },
+        'Pending': { color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', label: 'Pendente', icon: Clock }
     };
-    const c = config[status as keyof typeof config] || config['Pending'];
-    return (
-        <span className={`px-2 py-0.5 rounded-sm text-[10px] uppercase font-bold border ${c.color}`}>
-            {c.label}
-        </span>
-    );
+    return config[status as keyof typeof config] || config['Pending'];
   };
 
+  const getPriorityConfig = (priority: string) => {
+    const config = {
+        'High': { color: 'bg-red-500/20 text-red-400', label: 'Urgente' },
+        'Medium': { color: 'bg-yellow-500/20 text-yellow-400', label: 'Normal' },
+        'Low': { color: 'bg-emerald-500/20 text-emerald-400', label: 'Baixa' }
+    };
+    return config[priority as keyof typeof config] || config['Medium'];
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+        >
+          <Loader2 className="w-8 h-8 text-blue-500" />
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-4">
-      {/* Filters Box */}
-      <div className="bg-white p-3 border-t-2 border-gray-300 rounded-sm shadow-sm flex flex-col md:flex-row justify-between items-center gap-2">
-         <div className="flex gap-2 w-full md:w-auto">
-             <div className="flex items-center border border-gray-300 bg-gray-50 px-2 py-1 rounded-sm">
-                <input 
-                    type="text" 
-                    placeholder="Buscar processos..." 
-                    className="bg-transparent text-sm w-48 outline-none"
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                />
-                <Search size={14} className="text-gray-500" />
-             </div>
-             
-             <select 
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="border border-gray-300 bg-white text-sm px-2 py-1 rounded-sm outline-none"
-             >
-                 <option value="all">Status</option>
-                 <option value="Pending">Pendentes</option>
-                 <option value="In Progress">Andamento</option>
-                 <option value="Approved">Aprovados</option>
-                 <option value="Rejected">Rejeitados</option>
-             </select>
-         </div>
-
-         <button 
-            onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center gap-1 bg-[#3c8dbc] hover:bg-[#367fa9] text-white px-3 py-1.5 rounded-sm font-bold text-xs shadow-sm"
-         >
-            <Plus size={14} /> NOVO PROCESSO
-         </button>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="max-w-7xl mx-auto"
+    >
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-white mb-2">Processos</h1>
+        <p className="text-white/50">Acompanhe seus processos e tramitações</p>
       </div>
 
-      <div className="bg-white border border-gray-200 shadow-sm rounded-sm">
-         <div className="border-b border-gray-100 px-4 py-2 bg-gray-50">
-            <h3 className="text-sm font-semibold text-gray-700">Meus Processos</h3>
+      {/* Toolbar */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass rounded-2xl p-4 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between"
+      >
+        <div className="flex gap-3 w-full md:w-auto flex-1">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+            <input
+              type="text"
+              placeholder="Buscar processos..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-blue-500/50 transition-colors"
+            />
+          </div>
+          
+          <div className="relative">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="pl-9 pr-8 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white appearance-none cursor-pointer focus:outline-none focus:border-blue-500/50 transition-colors"
+            >
+              <option value="all" className="bg-[#1a1a1a]">Todos Status</option>
+              <option value="Pending" className="bg-[#1a1a1a]">Pendentes</option>
+              <option value="In Progress" className="bg-[#1a1a1a]">Em Andamento</option>
+              <option value="Approved" className="bg-[#1a1a1a]">Aprovados</option>
+              <option value="Rejected" className="bg-[#1a1a1a]">Rejeitados</option>
+            </select>
+          </div>
         </div>
-         {filteredProcesses.length === 0 ? (
-             <div className="p-8 text-center text-gray-500 text-sm">
-                 Nenhum processo encontrado.
-             </div>
-         ) : (
-             <div className="divide-y divide-gray-100">
-                 {filteredProcesses.map((proc, idx) => (
-                     <div 
-                        key={proc.id} 
-                        onClick={() => setSelectedProcess(proc)}
-                        className={`p-3 flex items-center justify-between cursor-pointer hover:bg-blue-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-[#f9f9f9]'}`}
-                     >
-                         <div className="flex items-center gap-3">
-                             <div className="text-gray-400">
-                                 <FileText size={20} />
-                             </div>
-                             <div>
-                                 <div className="flex items-center gap-2">
-                                     <span className="text-[10px] font-mono font-bold text-gray-600 bg-gray-200 px-1 rounded-sm border border-gray-300">{proc.number}</span>
-                                     {getStatusBadge(proc.status)}
-                                 </div>
-                                 <h3 className="font-bold text-gray-800 text-sm mt-0.5">{proc.title}</h3>
-                                 <p className="text-xs text-gray-500">
-                                     Etapa: <span className="font-semibold text-gray-700">{proc.currentStep}</span> • {proc.assignedTo}
-                                 </p>
-                             </div>
-                         </div>
-                         <div className="flex items-center gap-4">
-                             <div className="text-right hidden sm:block">
-                                 <p className="text-[10px] text-gray-400 uppercase">Atualização</p>
-                                 <p className="text-xs font-semibold text-gray-700">{proc.lastUpdate}</p>
-                             </div>
-                             <ChevronRight size={16} className="text-gray-300" />
-                         </div>
-                     </div>
-                 ))}
-             </div>
-         )}
+        
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setIsCreateModalOpen(true)}
+          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl text-white font-medium shadow-lg shadow-blue-500/25"
+        >
+          <Plus className="w-5 h-5" />
+          Novo Processo
+        </motion.button>
+      </motion.div>
+
+      {/* Stats Summary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {[
+          { label: 'Total', value: processes.length, color: 'from-blue-500/20 to-purple-500/20' },
+          { label: 'Pendentes', value: processes.filter(p => p.status === 'Pending').length, color: 'from-yellow-500/20 to-orange-500/20' },
+          { label: 'Em Andamento', value: processes.filter(p => p.status === 'In Progress').length, color: 'from-cyan-500/20 to-blue-500/20' },
+          { label: 'Concluídos', value: processes.filter(p => p.status === 'Approved').length, color: 'from-emerald-500/20 to-green-500/20' }
+        ].map((stat, idx) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.1 }}
+            className={`glass rounded-2xl p-4 bg-gradient-to-br ${stat.color}`}
+          >
+            <p className="text-sm text-white/60">{stat.label}</p>
+            <p className="text-2xl font-bold text-white">{stat.value}</p>
+          </motion.div>
+        ))}
       </div>
 
-      {/* Modal Criar */}
-      <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title="Novo Processo">
-         <div className="space-y-3 py-2">
-            <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-700 uppercase">Assunto</label>
-                <input 
-                    type="text" 
-                    className="w-full p-2 border border-gray-300 rounded-sm focus:border-blue-400 outline-none text-sm"
-                    placeholder="Ex: Solicitação de Diárias"
-                    value={newProc.title}
-                    onChange={e => setNewProc({...newProc, title: e.target.value})}
-                />
-            </div>
-            
-            <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-700 uppercase">Setor Destino</label>
-                <select 
-                    className="w-full p-2 border border-gray-300 rounded-sm focus:border-blue-400 outline-none text-sm bg-white"
-                    value={newProc.sector}
-                    onChange={e => setNewProc({...newProc, sector: e.target.value as SectorType})}
+      {/* Processes List */}
+      {filteredProcesses.length === 0 ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="glass rounded-3xl p-12 text-center"
+        >
+          <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
+            <GitBranch className="w-10 h-10 text-white/30" />
+          </div>
+          <h3 className="text-xl font-semibold text-white mb-2">Nenhum processo encontrado</h3>
+          <p className="text-white/50 mb-6">Crie um novo processo para começar</p>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setIsCreateModalOpen(true)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-500/20 border border-blue-500/30 rounded-xl text-blue-400 font-medium hover:bg-blue-500/30 transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            Criar Processo
+          </motion.button>
+        </motion.div>
+      ) : (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="glass rounded-2xl overflow-hidden"
+        >
+          <div className="p-4 border-b border-white/10 flex justify-between items-center">
+            <h3 className="font-semibold text-white">Meus Processos</h3>
+            <span className="text-sm text-white/50">{filteredProcesses.length} registro(s)</span>
+          </div>
+          
+          <div className="divide-y divide-white/5">
+            {filteredProcesses.map((proc, idx) => {
+              const statusConfig = getStatusConfig(proc.status);
+              const priorityConfig = getPriorityConfig(proc.priority);
+              const StatusIcon = statusConfig.icon;
+              
+              return (
+                <motion.div
+                  key={proc.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}
+                  onClick={() => setSelectedProcess(proc)}
+                  className="p-4 flex items-center justify-between cursor-pointer transition-colors"
                 >
-                    {Object.values(SectorType).map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-            </div>
-
-            <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-700 uppercase">Descrição</label>
-                <textarea 
-                    rows={4}
-                    className="w-full p-2 border border-gray-300 rounded-sm focus:border-blue-400 outline-none text-sm"
-                    value={newProc.desc}
-                    onChange={e => setNewProc({...newProc, desc: e.target.value})}
-                ></textarea>
-            </div>
-
-            <div className="pt-3 border-t border-gray-100">
-                <button 
-                    onClick={handleCreate}
-                    disabled={!newProc.title}
-                    className="bg-[#3c8dbc] text-white px-4 py-2 rounded-sm font-bold text-sm hover:bg-[#367fa9] float-right"
-                >
-                    Protocolar
-                </button>
-                <div className="clear-both"></div>
-            </div>
-         </div>
-      </Modal>
-
-      {/* Modal Detalhes */}
-      {selectedProcess && (
-          <Modal isOpen={!!selectedProcess} onClose={() => setSelectedProcess(null)} title={`Detalhes: ${selectedProcess.number}`} maxWidth="max-w-2xl">
-              <div className="space-y-4">
-                  {/* Header */}
-                  <div className="bg-gray-50 p-3 border border-gray-200 rounded-sm">
-                      <div className="flex justify-between items-start">
-                          <h2 className="text-lg font-bold text-gray-800">{selectedProcess.title}</h2>
-                          {getStatusBadge(selectedProcess.status)}
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center">
+                      <FileText className="w-6 h-6 text-white/60" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-mono text-white/50 bg-white/10 px-2 py-0.5 rounded-lg">
+                          {proc.number}
+                        </span>
+                        <span className={`text-xs px-2 py-0.5 rounded-lg border ${statusConfig.color}`}>
+                          {statusConfig.label}
+                        </span>
+                        <span className={`text-xs px-2 py-0.5 rounded-lg ${priorityConfig.color}`}>
+                          {priorityConfig.label}
+                        </span>
                       </div>
-                      <div className="flex gap-4 mt-2 text-xs text-gray-600">
-                           <span className="font-semibold">Prioridade: {selectedProcess.priority === 'High' ? 'Alta' : 'Normal'}</span>
-                      </div>
+                      <h3 className="font-medium text-white">{proc.title}</h3>
+                      <p className="text-sm text-white/50">
+                        Etapa: <span className="text-white/70">{proc.currentStep}</span> • {proc.assignedTo}
+                      </p>
+                    </div>
                   </div>
-
-                  {/* Info Grid */}
-                  <div className="grid grid-cols-2 gap-4">
-                      <div className="border border-gray-200 p-2 rounded-sm">
-                          <div className="flex items-center gap-1 text-gray-500 mb-1 border-b border-gray-100 pb-1">
-                              <User size={12} /> <span className="text-[10px] font-bold uppercase">Responsável</span>
-                          </div>
-                          <p className="text-sm font-bold text-gray-800">{selectedProcess.assignedTo}</p>
-                      </div>
-                      <div className="border border-gray-200 p-2 rounded-sm">
-                          <div className="flex items-center gap-1 text-gray-500 mb-1 border-b border-gray-100 pb-1">
-                              <Calendar size={12} /> <span className="text-[10px] font-bold uppercase">Última Movimentação</span>
-                          </div>
-                          <p className="text-sm font-bold text-gray-800">{selectedProcess.lastUpdate}</p>
-                      </div>
+                  
+                  <div className="flex items-center gap-4">
+                    <div className="text-right hidden sm:block">
+                      <p className="text-xs text-white/40">Atualização</p>
+                      <p className="text-sm text-white/70">{proc.lastUpdate}</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-white/30" />
                   </div>
-
-                  {/* Timeline Mock */}
-                  <div className="border-t border-gray-200 pt-3">
-                      <h4 className="font-bold text-gray-700 text-sm mb-3 uppercase">Histórico</h4>
-                      <div className="space-y-4 pl-2">
-                          <div className="flex gap-3">
-                              <div className="flex flex-col items-center">
-                                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                  <div className="w-0.5 h-full bg-gray-200"></div>
-                              </div>
-                              <div className="pb-4">
-                                  <p className="text-sm font-bold text-gray-800">{selectedProcess.currentStep}</p>
-                                  <p className="text-xs text-gray-500">{selectedProcess.assignedTo} - 2 horas atrás</p>
-                              </div>
-                          </div>
-                          <div className="flex gap-3">
-                              <div className="flex flex-col items-center">
-                                  <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-                              </div>
-                              <div>
-                                  <p className="text-sm font-bold text-gray-600">Abertura</p>
-                                  <p className="text-xs text-gray-500">Você - 3 dias atrás</p>
-                              </div>
-                          </div>
-                      </div>
-                  </div>
-
-                  {/* Actions */}
-                  {(selectedProcess.status === 'Pending' || selectedProcess.status === 'In Progress') && (
-                      <div className="flex gap-2 pt-3 border-t border-gray-200 justify-end">
-                          <button 
-                            onClick={() => handleStatusChange('Rejected')}
-                            className="px-3 py-2 border border-red-300 text-red-700 font-bold text-xs rounded-sm hover:bg-red-50"
-                          >
-                              REJEITAR
-                          </button>
-                          <button 
-                            onClick={() => handleStatusChange('Approved')}
-                            className="px-3 py-2 bg-[#00a65a] text-white font-bold text-xs rounded-sm hover:bg-[#008d4c]"
-                          >
-                              APROVAR
-                          </button>
-                      </div>
-                  )}
-              </div>
-          </Modal>
+                </motion.div>
+              );
+            })}
+          </div>
+        </motion.div>
       )}
-    </div>
+
+      {/* Create Modal */}
+      <GlassModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title="Novo Processo">
+        <div className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-white/70 mb-2">Assunto *</label>
+            <input
+              type="text"
+              value={newProc.title}
+              onChange={e => setNewProc({...newProc, title: e.target.value})}
+              placeholder="Ex: Solicitação de Diárias"
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-blue-500/50 transition-colors"
+            />
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">Setor Destino</label>
+              <select
+                value={newProc.sector}
+                onChange={e => setNewProc({...newProc, sector: e.target.value as SectorType})}
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white appearance-none cursor-pointer focus:outline-none focus:border-blue-500/50 transition-colors"
+              >
+                {Object.values(SectorType).map(s => (
+                  <option key={s} value={s} className="bg-[#1a1a1a]">{s}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">Prioridade</label>
+              <select
+                value={newProc.priority}
+                onChange={e => setNewProc({...newProc, priority: e.target.value as 'Low' | 'Medium' | 'High'})}
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white appearance-none cursor-pointer focus:outline-none focus:border-blue-500/50 transition-colors"
+              >
+                <option value="Low" className="bg-[#1a1a1a]">Baixa</option>
+                <option value="Medium" className="bg-[#1a1a1a]">Normal</option>
+                <option value="High" className="bg-[#1a1a1a]">Urgente</option>
+              </select>
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-white/70 mb-2">Descrição</label>
+            <textarea
+              rows={4}
+              value={newProc.desc}
+              onChange={e => setNewProc({...newProc, desc: e.target.value})}
+              placeholder="Descreva os detalhes do processo..."
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-blue-500/50 transition-colors resize-none"
+            />
+          </div>
+          
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleCreate}
+            disabled={!newProc.title}
+            className="w-full py-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Protocolar Processo
+          </motion.button>
+        </div>
+      </GlassModal>
+
+      {/* Detail Modal */}
+      <GlassModal 
+        isOpen={!!selectedProcess} 
+        onClose={() => setSelectedProcess(null)} 
+        title={selectedProcess ? `Processo ${selectedProcess.number}` : ''} 
+        size="lg"
+      >
+        {selectedProcess && (
+          <div className="space-y-6">
+            {/* Header Info */}
+            <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
+              <div className="flex justify-between items-start">
+                <h2 className="text-lg font-semibold text-white">{selectedProcess.title}</h2>
+                <div className="flex gap-2">
+                  <span className={`text-xs px-2 py-1 rounded-lg ${getPriorityConfig(selectedProcess.priority).color}`}>
+                    {getPriorityConfig(selectedProcess.priority).label}
+                  </span>
+                  <span className={`text-xs px-2 py-1 rounded-lg border ${getStatusConfig(selectedProcess.status).color}`}>
+                    {getStatusConfig(selectedProcess.status).label}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Workflow */}
+            {(selectedProcess.status === 'Pending' || selectedProcess.status === 'In Progress') && (
+              <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
+                <h4 className="text-sm font-semibold text-white mb-4">Fluxo do Processo</h4>
+                <div className="flex items-center justify-between overflow-x-auto pb-2">
+                  {WORKFLOW_STEPS.map((step, idx) => {
+                    const currentIdx = WORKFLOW_STEPS.indexOf(selectedProcess.currentStep);
+                    const isCompleted = idx < currentIdx;
+                    const isCurrent = idx === currentIdx;
+                    const isPending = idx > currentIdx;
+                    
+                    return (
+                      <React.Fragment key={step}>
+                        <div className={`flex flex-col items-center min-w-[80px] ${isPending ? 'opacity-40' : ''}`}>
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: idx * 0.1 }}
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold ${
+                              isCompleted ? 'bg-emerald-500/20 text-emerald-400' :
+                              isCurrent ? 'bg-blue-500/20 text-blue-400 ring-2 ring-blue-500/50' :
+                              'bg-white/10 text-white/40'
+                            }`}
+                          >
+                            {isCompleted ? <CheckCircle className="w-5 h-5" /> : idx + 1}
+                          </motion.div>
+                          <span className={`text-xs mt-2 text-center ${isCurrent ? 'text-blue-400 font-medium' : 'text-white/50'}`}>
+                            {step}
+                          </span>
+                        </div>
+                        {idx < WORKFLOW_STEPS.length - 1 && (
+                          <div className={`flex-1 h-0.5 mx-2 rounded ${idx < currentIdx ? 'bg-emerald-500' : 'bg-white/10'}`} />
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Info Grid */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-white/5 rounded-xl border border-white/10">
+                <div className="flex items-center gap-2 text-white/50 mb-2">
+                  <User className="w-4 h-4" />
+                  <span className="text-xs">Responsável</span>
+                </div>
+                <p className="font-medium text-white">{selectedProcess.assignedTo}</p>
+              </div>
+              <div className="p-4 bg-white/5 rounded-xl border border-white/10">
+                <div className="flex items-center gap-2 text-white/50 mb-2">
+                  <Calendar className="w-4 h-4" />
+                  <span className="text-xs">Última Movimentação</span>
+                </div>
+                <p className="font-medium text-white">{selectedProcess.lastUpdate}</p>
+              </div>
+            </div>
+
+            {/* Timeline */}
+            <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
+              <h4 className="text-sm font-semibold text-white mb-4">Histórico</h4>
+              <div className="space-y-4 pl-2">
+                <div className="flex gap-4">
+                  <div className="flex flex-col items-center">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                    <div className="w-0.5 h-full bg-white/10"></div>
+                  </div>
+                  <div className="pb-4">
+                    <p className="font-medium text-white">{selectedProcess.currentStep}</p>
+                    <p className="text-sm text-white/50">{selectedProcess.assignedTo} - {selectedProcess.lastUpdate}</p>
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <div className="w-3 h-3 bg-white/30 rounded-full ml-0"></div>
+                  <div>
+                    <p className="font-medium text-white/60">Processo Criado</p>
+                    <p className="text-sm text-white/40">Sistema</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            {(selectedProcess.status === 'Pending' || selectedProcess.status === 'In Progress') && (
+              <div className="flex gap-3 pt-4 border-t border-white/10">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handleStatusChange('Rejected')}
+                  className="px-4 py-2.5 bg-red-500/20 border border-red-500/30 rounded-xl text-red-400 font-medium hover:bg-red-500/30 transition-colors"
+                >
+                  Arquivar
+                </motion.button>
+                <div className="flex-1 flex gap-3 justify-end">
+                  {selectedProcess.currentStep !== 'Finalizado' && (
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleAdvanceStep}
+                      disabled={isAdvancing}
+                      className="px-4 py-2.5 bg-blue-500/20 border border-blue-500/30 rounded-xl text-blue-400 font-medium flex items-center gap-2 hover:bg-blue-500/30 transition-colors disabled:opacity-50"
+                    >
+                      {isAdvancing ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+                      Avançar Etapa
+                    </motion.button>
+                  )}
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => handleStatusChange('Approved')}
+                    className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-xl text-white font-medium"
+                  >
+                    Finalizar
+                  </motion.button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </GlassModal>
+    </motion.div>
   );
 };
