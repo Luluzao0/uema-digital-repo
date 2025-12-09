@@ -13,8 +13,20 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Input } from '../components';
 import { colors, spacing, borderRadius, typography } from '../theme';
+import { 
+  scale, 
+  moderateScale, 
+  fontScale, 
+  wp, 
+  hp, 
+  screenWidth,
+  getBottomSpace,
+  isSmallDevice,
+  getColumnWidth,
+} from '../utils/responsive';
 import { authService, isSupabaseConfigured } from '../services/supabase';
 import { storage } from '../services/storage';
 import { SectorType, User } from '../types';
@@ -254,46 +266,47 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    padding: spacing.lg,
-    paddingTop: spacing.xxl + 20,
+    paddingHorizontal: scale(24),
+    paddingTop: hp(8),
+    paddingBottom: scale(24) + getBottomSpace(),
   },
   logoContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: scale(8),
   },
   logoText: {
-    fontSize: 42,
+    fontSize: fontScale(isSmallDevice ? 32 : 42),
     fontWeight: '700',
     color: colors.textPrimary,
   },
   logoSubtext: {
-    fontSize: 24,
+    fontSize: fontScale(isSmallDevice ? 18 : 24),
     fontWeight: '300',
     color: colors.primary,
-    marginLeft: spacing.sm,
+    marginLeft: scale(8),
   },
   subtitle: {
-    ...typography.body,
+    fontSize: fontScale(14),
     color: colors.textMuted,
     textAlign: 'center',
-    marginBottom: spacing.xl,
+    marginBottom: scale(32),
   },
   form: {
-    gap: spacing.md,
+    gap: scale(16),
   },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.error + '20',
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    gap: spacing.sm,
+    padding: scale(16),
+    borderRadius: scale(12),
+    gap: scale(8),
   },
   errorText: {
     color: colors.error,
-    fontSize: 14,
+    fontSize: fontScale(14),
     flex: 1,
   },
   passwordContainer: {
@@ -302,57 +315,60 @@ const styles = StyleSheet.create({
   },
   eyeButton: {
     position: 'absolute',
-    right: spacing.md,
+    right: scale(16),
   },
   demoSection: {
-    marginTop: spacing.xl,
+    marginTop: scale(32),
   },
   demoTitle: {
-    ...typography.small,
+    fontSize: fontScale(14),
     color: colors.textMuted,
     textAlign: 'center',
-    marginBottom: spacing.md,
+    marginBottom: scale(16),
   },
   demoGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.sm,
+    gap: scale(8),
     justifyContent: 'center',
   },
   demoCard: {
     backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: borderRadius.md,
-    padding: spacing.sm,
+    borderRadius: scale(12),
+    padding: scale(12),
     alignItems: 'center',
-    width: '47%',
+    width: getColumnWidth(2, 8),
+    minWidth: scale(140),
+    maxWidth: scale(180),
     borderWidth: 1,
     borderColor: colors.border,
   },
   demoAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    marginBottom: spacing.xs,
+    width: scale(48),
+    height: scale(48),
+    borderRadius: scale(24),
+    marginBottom: scale(4),
   },
   demoName: {
-    ...typography.small,
+    fontSize: fontScale(14),
     color: colors.textPrimary,
     fontWeight: '600',
+    textAlign: 'center',
   },
   roleBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: borderRadius.full,
-    marginTop: spacing.xs,
+    paddingHorizontal: scale(8),
+    paddingVertical: scale(2),
+    borderRadius: scale(12),
+    marginTop: scale(4),
   },
   roleText: {
-    fontSize: 10,
+    fontSize: fontScale(10),
     fontWeight: '600',
   },
   footer: {
-    ...typography.caption,
+    fontSize: fontScale(12),
     color: colors.textMuted,
     textAlign: 'center',
-    marginTop: spacing.xl,
+    marginTop: scale(32),
   },
 });

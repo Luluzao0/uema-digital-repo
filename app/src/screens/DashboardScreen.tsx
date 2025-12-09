@@ -6,16 +6,25 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
-  Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../components';
 import { colors, spacing, borderRadius, typography, shadows } from '../theme';
 import { storage } from '../services/storage';
 import { Document, Process, User } from '../types';
-
-const { width } = Dimensions.get('window');
+import { 
+  scale, 
+  fontScale, 
+  wp, 
+  hp, 
+  screenWidth,
+  getColumnWidth,
+  getBottomSpace,
+  isSmallDevice,
+  isTablet,
+} from '../utils/responsive';
 
 interface DashboardScreenProps {
   user: User;
@@ -92,8 +101,9 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ user, onNaviga
   };
 
   return (
+    <SafeAreaView style={styles.container} edges={['top']}>
     <ScrollView
-      style={styles.container}
+      style={styles.scrollView}
       contentContainerStyle={styles.content}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
@@ -120,7 +130,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ user, onNaviga
               end={{ x: 1, y: 1 }}
               style={styles.statGradient}
             >
-              <Ionicons name={stat.icon as any} size={28} color="#fff" />
+              <Ionicons name={stat.icon as any} size={scale(28)} color="#fff" />
               <Text style={styles.statValue}>{stat.value}</Text>
               <Text style={styles.statLabel}>{stat.label}</Text>
             </LinearGradient>
@@ -152,7 +162,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ user, onNaviga
                 }]}>
                   <Ionicons 
                     name={doc.type === 'PDF' ? 'document' : doc.type === 'XLSX' ? 'grid' : 'document-text'} 
-                    size={20} 
+                    size={scale(20)} 
                     color={doc.type === 'PDF' ? colors.error : doc.type === 'XLSX' ? colors.success : colors.primary} 
                   />
                 </View>
@@ -187,7 +197,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ user, onNaviga
             <Card key={proc.id} style={styles.listCard}>
               <View style={styles.listItem}>
                 <View style={[styles.docIcon, { backgroundColor: getStatusColor(proc.status) + '20' }]}>
-                  <Ionicons name="git-branch" size={20} color={getStatusColor(proc.status)} />
+                  <Ionicons name="git-branch" size={scale(20)} color={getStatusColor(proc.status)} />
                 </View>
                 <View style={styles.listContent}>
                   <Text style={styles.listTitle} numberOfLines={1}>{proc.title}</Text>
@@ -209,24 +219,25 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ user, onNaviga
         <Text style={styles.sectionTitle}>Ações Rápidas</Text>
         <View style={styles.actionsGrid}>
           <TouchableOpacity style={styles.actionButton} onPress={() => onNavigate('Documents')}>
-            <Ionicons name="add-circle" size={24} color={colors.primary} />
+            <Ionicons name="add-circle" size={scale(24)} color={colors.primary} />
             <Text style={styles.actionText}>Novo Doc</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton} onPress={() => onNavigate('Processes')}>
-            <Ionicons name="git-branch" size={24} color={colors.success} />
+            <Ionicons name="git-branch" size={scale(24)} color={colors.success} />
             <Text style={styles.actionText}>Processo</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton} onPress={() => onNavigate('Chat')}>
-            <Ionicons name="chatbubbles" size={24} color={colors.info} />
+            <Ionicons name="chatbubbles" size={scale(24)} color={colors.info} />
             <Text style={styles.actionText}>Suporte</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton} onPress={() => onNavigate('Reports')}>
-            <Ionicons name="bar-chart" size={24} color={colors.warning} />
+            <Ionicons name="bar-chart" size={scale(24)} color={colors.warning} />
             <Text style={styles.actionText}>Relatórios</Text>
           </TouchableOpacity>
         </View>
       </View>
     </ScrollView>
+    </SafeAreaView>
   );
 };
 
@@ -235,75 +246,81 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  scrollView: {
+    flex: 1,
+  },
   content: {
     padding: spacing.md,
-    paddingBottom: spacing.xxl,
+    paddingBottom: scale(100) + getBottomSpace(),
   },
   header: {
-    marginBottom: spacing.lg,
+    marginBottom: scale(24),
   },
   greeting: {
-    ...typography.h2,
+    fontSize: fontScale(24),
+    fontWeight: '600',
     color: colors.textPrimary,
   },
   subGreeting: {
-    ...typography.body,
+    fontSize: fontScale(16),
     color: colors.textMuted,
-    marginTop: spacing.xs,
+    marginTop: scale(4),
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.sm,
-    marginBottom: spacing.lg,
+    gap: scale(8),
+    marginBottom: scale(24),
   },
   statCard: {
-    width: (width - spacing.md * 2 - spacing.sm) / 2,
+    width: getColumnWidth(2, 8),
+    minWidth: scale(150),
   },
   statGradient: {
-    padding: spacing.md,
-    borderRadius: borderRadius.lg,
+    padding: scale(16),
+    borderRadius: scale(16),
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 28,
+    fontSize: fontScale(28),
     fontWeight: '700',
     color: '#fff',
-    marginTop: spacing.sm,
+    marginTop: scale(8),
   },
   statLabel: {
-    ...typography.small,
+    fontSize: fontScale(14),
     color: 'rgba(255,255,255,0.8)',
   },
   section: {
-    marginBottom: spacing.lg,
+    marginBottom: scale(24),
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: scale(16),
   },
   sectionTitle: {
-    ...typography.h3,
+    fontSize: fontScale(20),
+    fontWeight: '600',
     color: colors.textPrimary,
   },
   seeAll: {
-    ...typography.small,
+    fontSize: fontScale(14),
     color: colors.primary,
   },
   listCard: {
-    marginBottom: spacing.sm,
+    marginBottom: scale(8),
   },
   listItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: scale(16),
   },
   docIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: borderRadius.md,
+    width: scale(44),
+    height: scale(44),
+    borderRadius: scale(12),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -311,47 +328,48 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listTitle: {
-    ...typography.body,
+    fontSize: fontScale(16),
     color: colors.textPrimary,
     fontWeight: '600',
   },
   listSubtitle: {
-    ...typography.caption,
+    fontSize: fontScale(12),
     color: colors.textMuted,
-    marginTop: 2,
+    marginTop: scale(2),
   },
   statusBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.full,
+    paddingHorizontal: scale(8),
+    paddingVertical: scale(4),
+    borderRadius: scale(12),
   },
   statusText: {
-    fontSize: 11,
+    fontSize: fontScale(11),
     fontWeight: '600',
   },
   emptyText: {
-    ...typography.body,
+    fontSize: fontScale(16),
     color: colors.textMuted,
     textAlign: 'center',
-    padding: spacing.lg,
+    padding: scale(24),
   },
   actionsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: spacing.sm,
+    marginTop: scale(8),
   },
   actionButton: {
     backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
+    borderRadius: scale(12),
+    padding: scale(16),
     alignItems: 'center',
-    width: (width - spacing.md * 2 - spacing.sm * 3) / 4,
+    width: getColumnWidth(4, 8),
+    minWidth: scale(70),
     borderWidth: 1,
     borderColor: colors.border,
   },
   actionText: {
-    ...typography.caption,
+    fontSize: fontScale(12),
     color: colors.textSecondary,
-    marginTop: spacing.xs,
+    marginTop: scale(4),
   },
 });

@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Document, Process, ChatSession, User, SectorType } from '../types';
+import { Document, Process, ChatSession, User, SectorType, ProcessStatus } from '../types';
 import { supabase, isSupabaseConfigured } from './supabase';
 
 const STORAGE_KEYS = {
@@ -54,9 +54,11 @@ const MOCK_PROCESSES: Process[] = [
     id: 'p1',
     number: 'PROC-2025-00128',
     title: 'Aquisição de Equipamentos de TI',
-    currentStep: 'Análise Orçamentária',
-    status: 'In Progress',
-    assignedTo: 'PROPLAD',
+    currentStep: 2,
+    totalSteps: 5,
+    status: ProcessStatus.IN_PROGRESS,
+    sector: SectorType.PROPLAD,
+    createdAt: '2025-10-19',
     lastUpdate: '2025-10-19',
     priority: 'High'
   },
@@ -64,9 +66,11 @@ const MOCK_PROCESSES: Process[] = [
     id: 'p2',
     number: 'PROC-2025-00145',
     title: 'Progressão Funcional - Dept. História',
-    currentStep: 'Validação Documental',
-    status: 'Pending',
-    assignedTo: 'PROGEP',
+    currentStep: 1,
+    totalSteps: 5,
+    status: ProcessStatus.PENDING,
+    sector: SectorType.PROGEP,
+    createdAt: '2025-10-18',
     lastUpdate: '2025-10-18',
     priority: 'Medium'
   },
@@ -74,9 +78,11 @@ const MOCK_PROCESSES: Process[] = [
     id: 'p3',
     number: 'PROC-2025-00099',
     title: 'Reformulação PPC Engenharia Civil',
-    currentStep: 'Concluído',
-    status: 'Approved',
-    assignedTo: 'PROG',
+    currentStep: 5,
+    totalSteps: 5,
+    status: ProcessStatus.COMPLETED,
+    sector: SectorType.PROG,
+    createdAt: '2025-10-10',
     lastUpdate: '2025-10-10',
     priority: 'Low'
   }

@@ -12,8 +12,10 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card, Button, Input } from '../components';
 import { colors, spacing, borderRadius, typography } from '../theme';
+import { scale, fontScale, hp, getBottomSpace } from '../utils/responsive';
 import { storage } from '../services/storage';
 import { Process, SectorType, User, hasPermission, ProcessStatus } from '../types';
 
@@ -202,11 +204,11 @@ export const ProcessesScreen: React.FC<ProcessesScreenProps> = ({ user }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Search Bar */}
       <View style={styles.searchBar}>
         <View style={styles.searchInput}>
-          <Ionicons name="search" size={20} color={colors.textMuted} />
+          <Ionicons name="search" size={scale(20)} color={colors.textMuted} />
           <TextInput
             style={styles.searchText}
             placeholder="Buscar processos..."
@@ -216,7 +218,7 @@ export const ProcessesScreen: React.FC<ProcessesScreenProps> = ({ user }) => {
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={20} color={colors.textMuted} />
+              <Ionicons name="close-circle" size={scale(20)} color={colors.textMuted} />
             </TouchableOpacity>
           )}
         </View>
@@ -248,7 +250,7 @@ export const ProcessesScreen: React.FC<ProcessesScreenProps> = ({ user }) => {
         }
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Ionicons name="git-network-outline" size={64} color={colors.textMuted} />
+            <Ionicons name="git-network-outline" size={scale(64)} color={colors.textMuted} />
             <Text style={styles.emptyText}>Nenhum processo encontrado</Text>
           </View>
         }
@@ -261,7 +263,7 @@ export const ProcessesScreen: React.FC<ProcessesScreenProps> = ({ user }) => {
             colors={[colors.primary, colors.primaryDark]}
             style={styles.fabGradient}
           >
-            <Ionicons name="add" size={28} color="#fff" />
+            <Ionicons name="add" size={scale(28)} color="#fff" />
           </LinearGradient>
         </TouchableOpacity>
       )}
@@ -273,7 +275,7 @@ export const ProcessesScreen: React.FC<ProcessesScreenProps> = ({ user }) => {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Novo Processo</Text>
               <TouchableOpacity onPress={() => setShowAddModal(false)}>
-                <Ionicons name="close" size={24} color={colors.textPrimary} />
+                <Ionicons name="close" size={scale(24)} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
 
@@ -339,11 +341,11 @@ export const ProcessesScreen: React.FC<ProcessesScreenProps> = ({ user }) => {
               </View>
             </View>
 
-            <Button title="Criar Processo" onPress={handleAddProcess} style={{ marginTop: spacing.lg }} />
+            <Button title="Criar Processo" onPress={handleAddProcess} style={{ marginTop: scale(20) }} />
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -353,36 +355,36 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   searchBar: {
-    padding: spacing.md,
+    padding: scale(16),
     paddingBottom: 0,
   },
   searchInput: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md,
+    borderRadius: scale(12),
+    paddingHorizontal: scale(16),
     borderWidth: 1,
     borderColor: colors.border,
-    height: 48,
-    gap: spacing.sm,
+    height: scale(48),
+    gap: scale(8),
   },
   searchText: {
     flex: 1,
     color: colors.textPrimary,
-    fontSize: 16,
+    fontSize: fontScale(16),
   },
   filterRow: {
     flexDirection: 'row',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    gap: spacing.xs,
+    paddingHorizontal: scale(16),
+    paddingVertical: scale(8),
+    gap: scale(4),
     flexWrap: 'wrap',
   },
   filterChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.full,
+    paddingHorizontal: scale(16),
+    paddingVertical: scale(6),
+    borderRadius: scale(20),
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
     borderColor: colors.border,
@@ -392,150 +394,150 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   filterText: {
-    ...typography.caption,
+    fontSize: fontScale(12),
     color: colors.textMuted,
   },
   filterTextActive: {
     color: '#fff',
   },
   list: {
-    padding: spacing.md,
-    paddingBottom: 100,
+    padding: scale(16),
+    paddingBottom: scale(100) + getBottomSpace(),
   },
   processCard: {
-    marginBottom: spacing.md,
+    marginBottom: scale(16),
   },
   processHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: scale(8),
   },
   processLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: scale(8),
   },
   processNumber: {
-    ...typography.caption,
+    fontSize: fontScale(12),
     color: colors.textMuted,
     fontFamily: 'monospace',
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: borderRadius.full,
-    gap: 4,
+    paddingHorizontal: scale(8),
+    paddingVertical: scale(2),
+    borderRadius: scale(12),
+    gap: scale(4),
   },
   statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: scale(6),
+    height: scale(6),
+    borderRadius: scale(3),
   },
   statusText: {
-    fontSize: 11,
+    fontSize: fontScale(11),
     fontWeight: '600',
   },
   priorityBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: borderRadius.sm,
+    paddingHorizontal: scale(8),
+    paddingVertical: scale(2),
+    borderRadius: scale(8),
     borderWidth: 1,
   },
   priorityText: {
-    fontSize: 10,
+    fontSize: fontScale(10),
     fontWeight: '600',
   },
   processTitle: {
-    ...typography.body,
+    fontSize: fontScale(16),
     color: colors.textPrimary,
     fontWeight: '600',
-    marginBottom: spacing.xs,
+    marginBottom: scale(4),
   },
   processDesc: {
-    ...typography.small,
+    fontSize: fontScale(14),
     color: colors.textMuted,
-    marginBottom: spacing.sm,
+    marginBottom: scale(8),
   },
   processFooter: {
     flexDirection: 'row',
-    gap: spacing.md,
+    gap: scale(16),
   },
   processInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: scale(4),
   },
   processInfoText: {
-    ...typography.caption,
+    fontSize: fontScale(12),
     color: colors.textMuted,
   },
   progressContainer: {
-    marginTop: spacing.md,
-    paddingTop: spacing.sm,
+    marginTop: scale(16),
+    paddingTop: scale(8),
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
   progressRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: spacing.xs,
+    marginBottom: scale(4),
   },
   progressLabel: {
-    ...typography.caption,
+    fontSize: fontScale(12),
     color: colors.textMuted,
   },
   progressValue: {
-    ...typography.caption,
+    fontSize: fontScale(12),
     color: colors.primary,
   },
   progressBar: {
-    height: 6,
+    height: scale(6),
     backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 3,
+    borderRadius: scale(3),
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     backgroundColor: colors.primary,
-    borderRadius: 3,
+    borderRadius: scale(3),
   },
   advanceBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: spacing.md,
-    paddingVertical: spacing.sm,
+    marginTop: scale(16),
+    paddingVertical: scale(8),
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    gap: spacing.xs,
+    gap: scale(4),
   },
   advanceBtnText: {
-    ...typography.small,
+    fontSize: fontScale(14),
     color: colors.primary,
     fontWeight: '600',
   },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.xxl,
+    paddingVertical: scale(48),
   },
   emptyText: {
-    ...typography.body,
+    fontSize: fontScale(16),
     color: colors.textMuted,
-    marginTop: spacing.md,
+    marginTop: scale(16),
   },
   fab: {
     position: 'absolute',
-    right: spacing.md,
-    bottom: spacing.md,
+    right: scale(16),
+    bottom: scale(16) + getBottomSpace(),
   },
   fabGradient: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: scale(56),
+    height: scale(56),
+    borderRadius: scale(28),
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 5,
@@ -551,56 +553,58 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: colors.background,
-    borderTopLeftRadius: borderRadius.xl,
-    borderTopRightRadius: borderRadius.xl,
-    padding: spacing.lg,
-    gap: spacing.md,
-    maxHeight: '80%',
+    borderTopLeftRadius: scale(24),
+    borderTopRightRadius: scale(24),
+    padding: scale(24),
+    gap: scale(16),
+    maxHeight: '85%',
+    paddingBottom: scale(24) + getBottomSpace(),
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: scale(8),
   },
   modalTitle: {
-    ...typography.h3,
+    fontSize: fontScale(20),
+    fontWeight: '600',
     color: colors.textPrimary,
   },
   optionSection: {
-    marginTop: spacing.sm,
+    marginTop: scale(8),
   },
   optionLabel: {
-    ...typography.small,
+    fontSize: fontScale(14),
     color: colors.textMuted,
-    marginBottom: spacing.sm,
+    marginBottom: scale(8),
   },
   optionRow: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    gap: scale(8),
   },
   optionBtn: {
     flex: 1,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
+    paddingVertical: scale(12),
+    borderRadius: scale(12),
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
   },
   optionBtnText: {
-    ...typography.small,
+    fontSize: fontScale(14),
     color: colors.textMuted,
   },
   sectorOptions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.xs,
+    gap: scale(8),
   },
   sectorOption: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
+    paddingHorizontal: scale(16),
+    paddingVertical: scale(10),
+    borderRadius: scale(12),
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
     borderColor: colors.border,
@@ -610,7 +614,7 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   sectorOptionText: {
-    ...typography.small,
+    fontSize: fontScale(14),
     color: colors.textMuted,
   },
   sectorOptionTextActive: {

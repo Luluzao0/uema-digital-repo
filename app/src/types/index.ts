@@ -29,6 +29,7 @@ export const ROLE_PERMISSIONS = {
     canCreateProcess: true,
     canApproveProcess: true,
     canRejectProcess: true,
+    canAdvanceProcess: true,
     canViewReports: true,
     canExportReports: true,
     canManageUsers: true,
@@ -44,6 +45,7 @@ export const ROLE_PERMISSIONS = {
     canCreateProcess: true,
     canApproveProcess: true,
     canRejectProcess: true,
+    canAdvanceProcess: true,
     canViewReports: true,
     canExportReports: true,
     canManageUsers: false,
@@ -59,6 +61,7 @@ export const ROLE_PERMISSIONS = {
     canCreateProcess: true,
     canApproveProcess: false,
     canRejectProcess: false,
+    canAdvanceProcess: true,
     canViewReports: true,
     canExportReports: false,
     canManageUsers: false,
@@ -74,6 +77,7 @@ export const ROLE_PERMISSIONS = {
     canCreateProcess: false,
     canApproveProcess: false,
     canRejectProcess: false,
+    canAdvanceProcess: false,
     canViewReports: true,
     canExportReports: false,
     canManageUsers: false,
@@ -102,14 +106,25 @@ export interface Document {
   content?: string;
 }
 
+export enum ProcessStatus {
+  PENDING = 'PENDING',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+  REJECTED = 'REJECTED',
+}
+
 export interface Process {
   id: string;
   number: string;
   title: string;
-  currentStep: string;
-  status: 'Pending' | 'In Progress' | 'Approved' | 'Rejected';
-  assignedTo: string;
-  lastUpdate: string;
+  description?: string;
+  currentStep: number;
+  totalSteps?: number;
+  status: ProcessStatus;
+  sector?: SectorType;
+  assignedTo?: string;
+  createdAt: string;
+  lastUpdate?: string;
   priority: 'Low' | 'Medium' | 'High';
 }
 

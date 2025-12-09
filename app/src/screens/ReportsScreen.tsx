@@ -7,12 +7,14 @@ import {
   RefreshControl,
   Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Card } from '../components';
 import { colors, spacing, borderRadius, typography } from '../theme';
 import { storage } from '../services/storage';
 import { User, SectorType, hasPermission, ProcessStatus } from '../types';
+import { scale, fontScale, wp, getBottomSpace } from '../utils/responsive';
 
 interface ReportsScreenProps {
   user: User;
@@ -97,7 +99,7 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({ user }) => {
   }) => (
     <Card style={[styles.statCard, { borderLeftColor: color, borderLeftWidth: 3 }]}>
       <View style={[styles.statIconBox, { backgroundColor: color + '20' }]}>
-        <Ionicons name={icon as any} size={22} color={color} />
+        <Ionicons name={icon as any} size={scale(22)} color={color} />
       </View>
       <View style={styles.statContent}>
         <Text style={styles.statValue}>{value}</Text>
@@ -106,7 +108,7 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({ user }) => {
           <View style={styles.trendRow}>
             <Ionicons 
               name={trend.positive ? 'trending-up' : 'trending-down'} 
-              size={12} 
+              size={scale(12)} 
               color={trend.positive ? colors.success : colors.error} 
             />
             <Text style={[styles.trendText, { color: trend.positive ? colors.success : colors.error }]}>
@@ -193,8 +195,9 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({ user }) => {
   };
 
   return (
+    <SafeAreaView style={styles.container} edges={['top']}>
     <ScrollView 
-      style={styles.container}
+      style={styles.scrollView}
       contentContainerStyle={styles.content}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
@@ -212,7 +215,7 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({ user }) => {
           </View>
           {canExport && (
             <View style={styles.exportBadge}>
-              <Ionicons name="download-outline" size={16} color={colors.primary} />
+              <Ionicons name="download-outline" size={scale(16)} color={colors.primary} />
               <Text style={styles.exportText}>Exportar</Text>
             </View>
           )}
@@ -273,7 +276,7 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({ user }) => {
         
         <View style={styles.metricRow}>
           <View style={styles.metricLeft}>
-            <Ionicons name="speedometer-outline" size={20} color={colors.success} />
+            <Ionicons name="speedometer-outline" size={scale(20)} color={colors.success} />
             <View>
               <Text style={styles.metricLabel}>Taxa de Conclusão</Text>
               <Text style={styles.metricValue}>
@@ -299,7 +302,7 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({ user }) => {
 
         <View style={styles.metricRow}>
           <View style={styles.metricLeft}>
-            <Ionicons name="flash-outline" size={20} color={colors.warning} />
+            <Ionicons name="flash-outline" size={scale(20)} color={colors.warning} />
             <View>
               <Text style={styles.metricLabel}>Produtividade</Text>
               <Text style={styles.metricValue}>85%</Text>
@@ -312,7 +315,7 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({ user }) => {
 
         <View style={styles.metricRow}>
           <View style={styles.metricLeft}>
-            <Ionicons name="analytics-outline" size={20} color={colors.info} />
+            <Ionicons name="analytics-outline" size={scale(20)} color={colors.info} />
             <View>
               <Text style={styles.metricLabel}>Eficiência RAG</Text>
               <Text style={styles.metricValue}>92%</Text>
@@ -325,8 +328,9 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({ user }) => {
       </Card>
 
       {/* Spacer for bottom nav */}
-      <View style={{ height: spacing.xxl }} />
+      <View style={{ height: scale(40) }} />
     </ScrollView>
+    </SafeAreaView>
   );
 };
 
@@ -335,11 +339,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  scrollView: {
+    flex: 1,
+  },
   content: {
-    paddingBottom: 100,
+    paddingBottom: scale(100) + getBottomSpace(),
   },
   headerGradient: {
-    padding: spacing.lg,
+    padding: scale(20),
   },
   header: {
     flexDirection: 'row',
@@ -347,53 +354,55 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    ...typography.h2,
+    fontSize: fontScale(24),
+    fontWeight: '700',
     color: colors.textPrimary,
   },
   headerSubtitle: {
-    ...typography.small,
+    fontSize: fontScale(13),
     color: colors.textMuted,
-    marginTop: spacing.xs,
+    marginTop: scale(4),
   },
   exportBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    gap: scale(6),
+    paddingHorizontal: scale(12),
+    paddingVertical: scale(8),
     backgroundColor: colors.primary + '20',
-    borderRadius: borderRadius.md,
+    borderRadius: scale(8),
   },
   exportText: {
-    ...typography.small,
+    fontSize: fontScale(13),
     color: colors.primary,
     fontWeight: '600',
   },
   sectionTitle: {
-    ...typography.h4,
+    fontSize: fontScale(18),
+    fontWeight: '600',
     color: colors.textPrimary,
-    paddingHorizontal: spacing.md,
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
+    paddingHorizontal: scale(16),
+    marginTop: scale(12),
+    marginBottom: scale(10),
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: spacing.sm,
-    gap: spacing.sm,
+    paddingHorizontal: scale(10),
+    gap: scale(10),
   },
   statCard: {
-    width: (width - spacing.md * 3) / 2,
+    width: wp(44),
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    padding: spacing.md,
-    marginHorizontal: spacing.xs,
+    gap: scale(10),
+    padding: scale(12),
+    marginHorizontal: scale(4),
   },
   statIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: borderRadius.md,
+    width: scale(44),
+    height: scale(44),
+    borderRadius: scale(8),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -401,149 +410,151 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statValue: {
-    ...typography.h3,
+    fontSize: fontScale(20),
+    fontWeight: '700',
     color: colors.textPrimary,
   },
   statLabel: {
-    ...typography.caption,
+    fontSize: fontScale(12),
     color: colors.textMuted,
   },
   trendRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
-    marginTop: 2,
+    gap: scale(2),
+    marginTop: scale(2),
   },
   trendText: {
-    fontSize: 10,
+    fontSize: fontScale(10),
     fontWeight: '600',
   },
   chartCard: {
-    margin: spacing.md,
+    margin: scale(16),
   },
   chartTitle: {
-    ...typography.body,
+    fontSize: fontScale(15),
     color: colors.textPrimary,
     fontWeight: '600',
-    marginBottom: spacing.md,
+    marginBottom: scale(12),
   },
   chartContainer: {
-    gap: spacing.sm,
+    gap: scale(10),
   },
   barRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: scale(10),
   },
   barLabel: {
-    ...typography.caption,
+    fontSize: fontScale(12),
     color: colors.textMuted,
-    width: 80,
+    width: scale(80),
   },
   barContainer: {
     flex: 1,
-    height: 20,
+    height: scale(20),
     backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: borderRadius.sm,
+    borderRadius: scale(4),
     overflow: 'hidden',
   },
   bar: {
     height: '100%',
-    borderRadius: borderRadius.sm,
-    minWidth: 4,
+    borderRadius: scale(4),
+    minWidth: scale(4),
   },
   barValue: {
-    ...typography.caption,
+    fontSize: fontScale(12),
     color: colors.textPrimary,
-    width: 30,
+    width: scale(30),
     textAlign: 'right',
   },
   donutContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.lg,
+    gap: scale(20),
   },
   donutVisual: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   donutRing: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 12,
+    width: scale(100),
+    height: scale(100),
+    borderRadius: scale(50),
+    borderWidth: scale(12),
     borderColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.02)',
   },
   donutCenter: {
-    ...typography.h2,
+    fontSize: fontScale(24),
+    fontWeight: '700',
     color: colors.textPrimary,
   },
   donutCenterLabel: {
-    ...typography.caption,
+    fontSize: fontScale(12),
     color: colors.textMuted,
   },
   donutLegend: {
     flex: 1,
-    gap: spacing.sm,
+    gap: scale(10),
   },
   legendRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: scale(10),
   },
   legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: scale(10),
+    height: scale(10),
+    borderRadius: scale(5),
   },
   legendLabel: {
-    ...typography.small,
+    fontSize: fontScale(13),
     color: colors.textMuted,
     flex: 1,
   },
   legendValue: {
-    ...typography.small,
+    fontSize: fontScale(13),
     color: colors.textPrimary,
   },
   metricsCard: {
-    margin: spacing.md,
+    margin: scale(16),
   },
   metricRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: spacing.sm,
+    paddingVertical: scale(10),
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
   metricLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: scale(10),
     flex: 1,
   },
   metricLabel: {
-    ...typography.small,
+    fontSize: fontScale(13),
     color: colors.textMuted,
   },
   metricValue: {
-    ...typography.body,
+    fontSize: fontScale(15),
     color: colors.textPrimary,
     fontWeight: '600',
   },
   progressMini: {
-    width: 100,
-    height: 6,
+    width: scale(100),
+    height: scale(6),
     backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 3,
+    borderRadius: scale(3),
     overflow: 'hidden',
   },
   progressMiniFill: {
     height: '100%',
     backgroundColor: colors.success,
-    borderRadius: 3,
+    borderRadius: scale(3),
   },
 });

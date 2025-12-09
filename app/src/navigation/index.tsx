@@ -4,6 +4,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { StyleSheet, Platform, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { scale, fontScale, getBottomSpace, screenHeight } from '../utils/responsive';
 
 import {
   LoginScreen,
@@ -39,6 +42,12 @@ interface MainTabsProps {
 }
 
 const MainTabs: React.FC<MainTabsProps> = ({ user, onLogout }) => {
+  const navigation = useNavigation<any>();
+  
+  const handleNavigate = (screen: string) => {
+    navigation.navigate(screen);
+  };
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -85,7 +94,7 @@ const MainTabs: React.FC<MainTabsProps> = ({ user, onLogout }) => {
         name="Dashboard"
         options={{ tabBarLabel: 'Início' }}
       >
-        {() => <DashboardScreen user={user} />}
+        {() => <DashboardScreen user={user} onNavigate={handleNavigate} />}
       </Tab.Screen>
       <Tab.Screen
         name="Documents"
@@ -146,8 +155,8 @@ const styles = StyleSheet.create({
     elevation: 0,
     borderTopWidth: 0,
     backgroundColor: 'transparent',
-    height: Platform.OS === 'ios' ? 85 : 65,
-    paddingBottom: Platform.OS === 'ios' ? 25 : 10,
+    height: Platform.OS === 'ios' ? scale(85) + getBottomSpace() : scale(65),
+    paddingBottom: Platform.OS === 'ios' ? getBottomSpace() : scale(10),
   },
   tabBarAndroid: {
     backgroundColor: 'rgba(18, 18, 24, 0.95)',
@@ -155,7 +164,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
   },
   tabBarLabel: {
-    fontSize: 10,
+    fontSize: fontScale(10),
     fontWeight: '500',
   },
 });

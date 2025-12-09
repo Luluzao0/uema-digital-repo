@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, borderRadius, spacing } from '../theme';
+import { scale, fontScale } from '../utils/responsive';
 
 interface ButtonProps {
   title: string;
@@ -32,9 +33,9 @@ export const Button: React.FC<ButtonProps> = ({
   style,
 }) => {
   const sizeStyles: Record<string, { height: number; paddingHorizontal: number; fontSize: number }> = {
-    small: { height: 36, paddingHorizontal: 12, fontSize: 14 },
-    medium: { height: 48, paddingHorizontal: 20, fontSize: 16 },
-    large: { height: 56, paddingHorizontal: 28, fontSize: 18 },
+    small: { height: scale(36), paddingHorizontal: scale(12), fontSize: fontScale(14) },
+    medium: { height: scale(48), paddingHorizontal: scale(20), fontSize: fontScale(16) },
+    large: { height: scale(56), paddingHorizontal: scale(28), fontSize: fontScale(18) },
   };
 
   const { height, paddingHorizontal, fontSize } = sizeStyles[size];
@@ -106,13 +107,13 @@ export const Button: React.FC<ButtonProps> = ({
 
 const styles = StyleSheet.create({
   buttonBase: {
-    borderRadius: borderRadius.md,
+    borderRadius: scale(12),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
   gradient: {
-    borderRadius: borderRadius.md,
+    borderRadius: scale(12),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

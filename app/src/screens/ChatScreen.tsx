@@ -10,12 +10,14 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, borderRadius, typography } from '../theme';
 import { storage } from '../services/storage';
 import { aiService } from '../services/ai';
 import { User, ChatMessage, ChatSession } from '../types';
+import { scale, fontScale, getStatusBarHeight, getBottomSpace } from '../utils/responsive';
 
 interface ChatScreenProps {
   user: User;
@@ -27,6 +29,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ user }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [session, setSession] = useState<ChatSession | null>(null);
   const flatListRef = useRef<FlatList>(null);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     initChat();
@@ -127,7 +130,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ user }) => {
             colors={[colors.primary, colors.primaryDark]}
             style={styles.avatar}
           >
-            <Ionicons name="sparkles" size={16} color="#fff" />
+            <Ionicons name="sparkles" size={scale(16)} color="#fff" />
           </LinearGradient>
         )}
         <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.assistantBubble]}>
@@ -147,25 +150,80 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ user }) => {
     );
   };
 
-  const SuggestionChip = ({ text, onPress }: { text: string; onPress: () => void }) => (
-    <TouchableOpacity style={styles.suggestionChip} onPress={onPress} activeOpacity={0.7}>
+  const handleSuggestionPress = (text: string) => {
+    setInputText(text);
+    // Auto-send after a brief delay
+    setTimeout(() => {
+      const userMessage: ChatMessage = {
+        id: `msg_${Date.now()}`,
+        content: text,
+        role: 'user',
+        timestamp: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, userMessage]);
+      setIsLoading(true);
+      setInputText('');
+      
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+
+      // Process the message
+      (async () => {
+        try {
+          const docs = await storage.getDocuments();
+          const context = docs.slice(0, 5).map(d => `- ${d.title} (${d.sector})`).join('\n');
+          const response = await aiService.chat(text, context);
+          const assistantMessage: ChatMessage = {
+            id: `msg_${Date.now()}_response`,
+            content: response,
+            role: 'assistant',
+            timestamp: new Date().toISOString(),
+          };
+          setMessages(prev => [...prev, assistantMessage]);
+        } catch (error) {
+          const errorMessage: ChatMessage = {
+            id: `msg_${Date.now()}_error`,
+            content: 'Desculpe, ocorreu um erro. Tente novamente.',
+            role: 'assistant',
+            timestamp: new Date().toISOString(),
+          };
+          setMessages(prev => [...prev, errorMessage]);
+        } finally {
+          setIsLoading(false);
+          setTimeout(() => {
+            flatListRef.current?.scrollToEnd({ animated: true });
+          }, 100);
+        }
+      })();
+    }, 100);
+  };
+
+  const SuggestionChip = ({ text, icon }: { text: string; icon: string }) => (
+    <TouchableOpacity 
+      style={styles.suggestionChip} 
+      onPress={() => handleSuggestionPress(text)} 
+      activeOpacity={0.7}
+    >
+      <Ionicons name={icon as any} size={scale(16)} color={colors.primary} />
       <Text style={styles.suggestionText}>{text}</Text>
     </TouchableOpacity>
   );
 
   const suggestions = [
-    'Quais documentos tenho acesso?',
-    'Mostre processos pendentes',
-    'Gere um resumo do mês',
-    'Ajuda com procedimentos',
+    { text: 'Documentos disponíveis', icon: 'document-text-outline' },
+    { text: 'Processos pendentes', icon: 'time-outline' },
+    { text: 'Resumo do mês', icon: 'calendar-outline' },
+    { text: 'Ajuda geral', icon: 'help-circle-outline' },
   ];
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-    >
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <KeyboardAvoidingView 
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
       {/* Header */}
       <LinearGradient
         colors={['rgba(0, 102, 204, 0.15)', 'transparent']}
@@ -177,7 +235,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ user }) => {
               colors={[colors.primary, colors.primaryDark]}
               style={styles.headerAvatar}
             >
-              <Ionicons name="sparkles" size={20} color="#fff" />
+              <Ionicons name="sparkles" size={scale(20)} color="#fff" />
             </LinearGradient>
             <View>
               <Text style={styles.headerTitle}>Assistente UEMA</Text>
@@ -188,7 +246,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ user }) => {
             </View>
           </View>
           <TouchableOpacity style={styles.newChatBtn} onPress={initChat}>
-            <Ionicons name="add" size={20} color={colors.primary} />
+            <Ionicons name="add" size={scale(20)} color={colors.primary} />
           </TouchableOpacity>
         </View>
       </LinearGradient>
@@ -208,7 +266,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ user }) => {
                 colors={[colors.primary, colors.primaryDark]}
                 style={styles.avatar}
               >
-                <Ionicons name="sparkles" size={16} color="#fff" />
+                <Ionicons name="sparkles" size={scale(16)} color="#fff" />
               </LinearGradient>
               <View style={styles.loadingBubble}>
                 <ActivityIndicator size="small" color={colors.primary} />
@@ -220,17 +278,15 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ user }) => {
       />
 
       {/* Suggestions */}
-      {messages.length <= 1 && (
+      {messages.length <= 1 && !isLoading && (
         <View style={styles.suggestionsContainer}>
-          <Text style={styles.suggestionsTitle}>Sugestões:</Text>
-          <View style={styles.suggestionsRow}>
-            {suggestions.map((text, i) => (
+          <Text style={styles.suggestionsTitle}>💡 Toque para perguntar:</Text>
+          <View style={styles.suggestionsGrid}>
+            {suggestions.map((item, i) => (
               <SuggestionChip 
                 key={i} 
-                text={text} 
-                onPress={() => {
-                  setInputText(text);
-                }} 
+                text={item.text}
+                icon={item.icon}
               />
             ))}
           </View>
@@ -238,36 +294,37 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ user }) => {
       )}
 
       {/* Input */}
-      <View style={styles.inputContainer}>
+      <View style={[styles.inputContainer, { paddingBottom: scale(12) + getBottomSpace() }]}>
         <View style={styles.inputRow}>
           <TextInput
             style={styles.input}
-            placeholder="Digite sua mensagem..."
+            placeholder="Escreva sua pergunta..."
             placeholderTextColor={colors.textMuted}
             value={inputText}
             onChangeText={setInputText}
             multiline
             maxLength={1000}
+            returnKeyType="send"
+            blurOnSubmit={false}
             onSubmitEditing={sendMessage}
           />
           <TouchableOpacity 
             style={[styles.sendBtn, !inputText.trim() && styles.sendBtnDisabled]} 
             onPress={sendMessage}
             disabled={!inputText.trim() || isLoading}
+            activeOpacity={0.7}
           >
             <LinearGradient
-              colors={inputText.trim() ? [colors.primary, colors.primaryDark] : ['#444', '#333']}
+              colors={inputText.trim() ? [colors.primary, colors.primaryDark] : ['#555', '#444']}
               style={styles.sendBtnGradient}
             >
-              <Ionicons name="send" size={18} color="#fff" />
+              <Ionicons name="send" size={scale(22)} color="#fff" />
             </LinearGradient>
           </TouchableOpacity>
         </View>
-        <Text style={styles.disclaimer}>
-          Respostas geradas por IA • Verifique informações importantes
-        </Text>
       </View>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
@@ -276,10 +333,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  keyboardContainer: {
+    flex: 1,
+  },
   header: {
-    paddingTop: spacing.md,
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.sm,
+    paddingTop: scale(8),
+    paddingHorizontal: scale(16),
+    paddingBottom: scale(8),
   },
   headerContent: {
     flexDirection: 'row',
@@ -289,67 +349,67 @@ const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: scale(10),
   },
   headerAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: scale(40),
+    height: scale(40),
+    borderRadius: scale(20),
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
-    ...typography.body,
+    fontSize: fontScale(15),
     color: colors.textPrimary,
     fontWeight: '600',
   },
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: scale(4),
   },
   statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: scale(6),
+    height: scale(6),
+    borderRadius: scale(3),
     backgroundColor: colors.success,
   },
   statusText: {
-    ...typography.caption,
+    fontSize: fontScale(11),
     color: colors.success,
   },
   newChatBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: borderRadius.md,
+    width: scale(36),
+    height: scale(36),
+    borderRadius: scale(8),
     backgroundColor: colors.primary + '20',
     alignItems: 'center',
     justifyContent: 'center',
   },
   messageList: {
-    padding: spacing.md,
-    paddingBottom: spacing.xxl,
+    padding: scale(16),
+    paddingBottom: scale(24),
   },
   messageRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    marginBottom: spacing.md,
-    gap: spacing.sm,
+    marginBottom: scale(12),
+    gap: scale(8),
   },
   messageRowUser: {
     justifyContent: 'flex-end',
   },
   avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: scale(32),
+    height: scale(32),
+    borderRadius: scale(16),
     alignItems: 'center',
     justifyContent: 'center',
   },
   userAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: scale(32),
+    height: scale(32),
+    borderRadius: scale(16),
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -357,36 +417,35 @@ const styles = StyleSheet.create({
   userAvatarText: {
     color: '#fff',
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: fontScale(14),
   },
   messageBubble: {
     maxWidth: '75%',
-    padding: spacing.md,
-    borderRadius: borderRadius.lg,
+    padding: scale(12),
+    borderRadius: scale(16),
   },
   assistantBubble: {
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
     borderColor: colors.border,
-    borderBottomLeftRadius: 4,
+    borderBottomLeftRadius: scale(4),
   },
   userBubble: {
     backgroundColor: colors.primary,
-    borderBottomRightRadius: 4,
+    borderBottomRightRadius: scale(4),
   },
   messageText: {
-    ...typography.body,
+    fontSize: fontScale(15),
     color: colors.textPrimary,
-    lineHeight: 22,
+    lineHeight: scale(22),
   },
   userMessageText: {
     color: '#fff',
   },
   messageTime: {
-    ...typography.caption,
+    fontSize: fontScale(10),
     color: colors.textMuted,
-    marginTop: spacing.xs,
-    fontSize: 10,
+    marginTop: scale(4),
   },
   userMessageTime: {
     color: 'rgba(255,255,255,0.7)',
@@ -394,51 +453,63 @@ const styles = StyleSheet.create({
   loadingRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: spacing.sm,
+    gap: scale(8),
   },
   loadingBubble: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    padding: spacing.md,
+    gap: scale(8),
+    padding: scale(12),
     backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: borderRadius.lg,
+    borderRadius: scale(16),
     borderWidth: 1,
     borderColor: colors.border,
   },
   loadingText: {
-    ...typography.small,
+    fontSize: fontScale(13),
     color: colors.textMuted,
   },
   suggestionsContainer: {
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.sm,
+    paddingHorizontal: scale(16),
+    paddingBottom: scale(12),
+    backgroundColor: 'rgba(0, 102, 204, 0.05)',
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: scale(12),
   },
   suggestionsTitle: {
-    ...typography.caption,
-    color: colors.textMuted,
-    marginBottom: spacing.sm,
+    fontSize: fontScale(14),
+    color: colors.textSecondary,
+    marginBottom: scale(12),
+    fontWeight: '500',
   },
-  suggestionsRow: {
+  suggestionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.xs,
+    gap: scale(10),
   },
   suggestionChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: borderRadius.full,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(8),
+    paddingHorizontal: scale(16),
+    paddingVertical: scale(14),
+    backgroundColor: colors.surface,
+    borderRadius: scale(12),
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.primary + '40',
+    minWidth: '47%',
+    maxWidth: '100%',
   },
   suggestionText: {
-    ...typography.small,
-    color: colors.primary,
+    fontSize: fontScale(14),
+    color: colors.textPrimary,
+    fontWeight: '500',
+    flex: 1,
   },
   inputContainer: {
-    padding: spacing.md,
-    paddingTop: spacing.sm,
+    padding: scale(16),
+    paddingTop: scale(12),
     borderTopWidth: 1,
     borderTopColor: colors.border,
     backgroundColor: colors.surface,
@@ -446,39 +517,33 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: spacing.sm,
+    gap: scale(12),
   },
   input: {
     flex: 1,
-    minHeight: 44,
-    maxHeight: 100,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    minHeight: scale(50),
+    maxHeight: scale(120),
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: scale(25),
+    paddingHorizontal: scale(20),
+    paddingVertical: scale(14),
+    paddingRight: scale(16),
     color: colors.textPrimary,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
+    fontSize: fontScale(16),
+    borderWidth: 1.5,
+    borderColor: colors.primary + '30',
   },
   sendBtn: {
-    marginBottom: 2,
+    marginBottom: scale(3),
   },
   sendBtnDisabled: {
-    opacity: 0.5,
+    opacity: 0.4,
   },
   sendBtnGradient: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: scale(50),
+    height: scale(50),
+    borderRadius: scale(25),
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  disclaimer: {
-    ...typography.caption,
-    color: colors.textMuted,
-    textAlign: 'center',
-    marginTop: spacing.sm,
-    fontSize: 10,
   },
 });

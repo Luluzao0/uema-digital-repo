@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, borderRadius, spacing, shadows, typography } from '../theme';
+import { scale, fontScale } from '../utils/responsive';
 
 interface CardProps {
   children: React.ReactNode;
@@ -70,8 +71,8 @@ export const Card: React.FC<CardProps> = ({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
+    borderRadius: scale(16),
+    padding: scale(16),
     borderWidth: 1,
     borderColor: colors.border,
     ...shadows.small,
@@ -81,15 +82,16 @@ const styles = StyleSheet.create({
     borderWidth: 0,
   },
   header: {
-    marginBottom: spacing.sm,
+    marginBottom: scale(8),
   },
   title: {
-    ...typography.h3,
+    fontSize: fontScale(20),
+    fontWeight: '600',
     color: colors.textPrimary,
   },
   subtitle: {
-    ...typography.small,
+    fontSize: fontScale(14),
     color: colors.textSecondary,
-    marginTop: 2,
+    marginTop: scale(2),
   },
 });

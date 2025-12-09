@@ -10,12 +10,14 @@ import {
   Alert,
   Modal,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Card, Button, Input } from '../components';
 import { colors, spacing, borderRadius, typography } from '../theme';
 import { storage } from '../services/storage';
 import { Document, SectorType, User, hasPermission } from '../types';
+import { scale, fontScale, getBottomSpace } from '../utils/responsive';
 
 interface DocumentsScreenProps {
   user: User;
@@ -113,7 +115,7 @@ export const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ user }) => {
       <Card style={styles.docCard}>
         <View style={styles.docRow}>
           <View style={[styles.iconBox, { backgroundColor: icon.color + '20' }]}>
-            <Ionicons name={icon.name as any} size={24} color={icon.color} />
+            <Ionicons name={icon.name as any} size={scale(24)} color={icon.color} />
           </View>
           
           <View style={styles.docInfo}>
@@ -132,14 +134,14 @@ export const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ user }) => {
 
           <View style={styles.docActions}>
             <TouchableOpacity style={styles.actionBtn}>
-              <Ionicons name="eye-outline" size={20} color={colors.primary} />
+              <Ionicons name="eye-outline" size={scale(20)} color={colors.primary} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionBtn}>
-              <Ionicons name="download-outline" size={20} color={colors.success} />
+              <Ionicons name="download-outline" size={scale(20)} color={colors.success} />
             </TouchableOpacity>
             {canDelete && (
               <TouchableOpacity style={styles.actionBtn} onPress={() => handleDelete(item)}>
-                <Ionicons name="trash-outline" size={20} color={colors.error} />
+                <Ionicons name="trash-outline" size={scale(20)} color={colors.error} />
               </TouchableOpacity>
             )}
           </View>
@@ -149,11 +151,11 @@ export const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ user }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Search Bar */}
       <View style={styles.searchBar}>
         <View style={styles.searchInput}>
-          <Ionicons name="search" size={20} color={colors.textMuted} />
+          <Ionicons name="search" size={scale(20)} color={colors.textMuted} />
           <TextInput
             style={styles.searchText}
             placeholder="Buscar documentos..."
@@ -163,7 +165,7 @@ export const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ user }) => {
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={20} color={colors.textMuted} />
+              <Ionicons name="close-circle" size={scale(20)} color={colors.textMuted} />
             </TouchableOpacity>
           )}
         </View>
@@ -203,7 +205,7 @@ export const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ user }) => {
         }
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Ionicons name="document-outline" size={64} color={colors.textMuted} />
+            <Ionicons name="document-outline" size={scale(64)} color={colors.textMuted} />
             <Text style={styles.emptyText}>Nenhum documento encontrado</Text>
           </View>
         }
@@ -216,7 +218,7 @@ export const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ user }) => {
             colors={[colors.primary, colors.primaryDark]}
             style={styles.fabGradient}
           >
-            <Ionicons name="add" size={28} color="#fff" />
+            <Ionicons name="add" size={scale(28)} color="#fff" />
           </LinearGradient>
         </TouchableOpacity>
       )}
@@ -228,7 +230,7 @@ export const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ user }) => {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Novo Documento</Text>
               <TouchableOpacity onPress={() => setShowAddModal(false)}>
-                <Ionicons name="close" size={24} color={colors.textPrimary} />
+                <Ionicons name="close" size={scale(24)} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
 
@@ -260,11 +262,11 @@ export const DocumentsScreen: React.FC<DocumentsScreenProps> = ({ user }) => {
               </View>
             </View>
 
-            <Button title="Criar Documento" onPress={handleAddDocument} style={{ marginTop: spacing.lg }} />
+            <Button title="Criar Documento" onPress={handleAddDocument} style={{ marginTop: scale(20) }} />
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -274,36 +276,36 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   searchBar: {
-    padding: spacing.md,
+    padding: scale(16),
     paddingBottom: 0,
   },
   searchInput: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md,
+    borderRadius: scale(8),
+    paddingHorizontal: scale(16),
     borderWidth: 1,
     borderColor: colors.border,
-    height: 48,
-    gap: spacing.sm,
+    height: scale(48),
+    gap: scale(10),
   },
   searchText: {
     flex: 1,
     color: colors.textPrimary,
-    fontSize: 16,
+    fontSize: fontScale(16),
   },
   filterRow: {
     flexDirection: 'row',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    gap: spacing.xs,
+    paddingHorizontal: scale(16),
+    paddingVertical: scale(10),
+    gap: scale(6),
     flexWrap: 'wrap',
   },
   filterChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.full,
+    paddingHorizontal: scale(12),
+    paddingVertical: scale(6),
+    borderRadius: scale(20),
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
     borderColor: colors.border,
@@ -313,28 +315,28 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   filterText: {
-    ...typography.caption,
+    fontSize: fontScale(12),
     color: colors.textMuted,
   },
   filterTextActive: {
     color: '#fff',
   },
   list: {
-    padding: spacing.md,
-    paddingBottom: 100,
+    padding: scale(16),
+    paddingBottom: scale(100) + getBottomSpace(),
   },
   docCard: {
-    marginBottom: spacing.sm,
+    marginBottom: scale(10),
   },
   docRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: scale(12),
   },
   iconBox: {
-    width: 50,
-    height: 50,
-    borderRadius: borderRadius.md,
+    width: scale(50),
+    height: scale(50),
+    borderRadius: scale(8),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -342,56 +344,56 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   docTitle: {
-    ...typography.body,
+    fontSize: fontScale(15),
     color: colors.textPrimary,
     fontWeight: '600',
   },
   docMeta: {
-    ...typography.caption,
+    fontSize: fontScale(12),
     color: colors.textMuted,
-    marginTop: 2,
+    marginTop: scale(2),
   },
   tagsRow: {
     flexDirection: 'row',
-    marginTop: spacing.xs,
-    gap: spacing.xs,
+    marginTop: scale(6),
+    gap: scale(6),
   },
   tag: {
     backgroundColor: colors.primary + '30',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: borderRadius.full,
+    paddingHorizontal: scale(8),
+    paddingVertical: scale(2),
+    borderRadius: scale(20),
   },
   tagText: {
-    fontSize: 10,
+    fontSize: fontScale(10),
     color: colors.primary,
   },
   docActions: {
     flexDirection: 'row',
-    gap: spacing.xs,
+    gap: scale(6),
   },
   actionBtn: {
-    padding: spacing.xs,
+    padding: scale(6),
   },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.xxl,
+    paddingVertical: scale(40),
   },
   emptyText: {
-    ...typography.body,
+    fontSize: fontScale(15),
     color: colors.textMuted,
-    marginTop: spacing.md,
+    marginTop: scale(12),
   },
   fab: {
     position: 'absolute',
-    right: spacing.md,
-    bottom: spacing.md,
+    right: scale(16),
+    bottom: scale(16) + getBottomSpace(),
   },
   fabGradient: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: scale(56),
+    height: scale(56),
+    borderRadius: scale(28),
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 5,
@@ -407,38 +409,40 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: colors.background,
-    borderTopLeftRadius: borderRadius.xl,
-    borderTopRightRadius: borderRadius.xl,
-    padding: spacing.lg,
-    gap: spacing.md,
+    borderTopLeftRadius: scale(20),
+    borderTopRightRadius: scale(20),
+    padding: scale(20),
+    paddingBottom: scale(20) + getBottomSpace(),
+    gap: scale(12),
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: scale(10),
   },
   modalTitle: {
-    ...typography.h3,
+    fontSize: fontScale(20),
+    fontWeight: '700',
     color: colors.textPrimary,
   },
   sectorPicker: {
-    marginTop: spacing.sm,
+    marginTop: scale(10),
   },
   pickerLabel: {
-    ...typography.small,
+    fontSize: fontScale(13),
     color: colors.textMuted,
-    marginBottom: spacing.sm,
+    marginBottom: scale(10),
   },
   sectorOptions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.xs,
+    gap: scale(6),
   },
   sectorOption: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
+    paddingHorizontal: scale(12),
+    paddingVertical: scale(8),
+    borderRadius: scale(8),
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
     borderColor: colors.border,
@@ -448,7 +452,7 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   sectorOptionText: {
-    ...typography.small,
+    fontSize: fontScale(13),
     color: colors.textMuted,
   },
   sectorOptionTextActive: {

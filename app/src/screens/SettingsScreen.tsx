@@ -8,11 +8,13 @@ import {
   Switch,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Card } from '../components';
 import { colors, spacing, borderRadius, typography } from '../theme';
 import { User, UserRole } from '../types';
+import { scale, fontScale, getBottomSpace } from '../utils/responsive';
 
 interface SettingsScreenProps {
   user: User;
@@ -93,7 +95,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ user, onLogout }
     >
       <View style={styles.settingLeft}>
         <View style={styles.settingIcon}>
-          <Ionicons name={icon as any} size={20} color={colors.primary} />
+          <Ionicons name={icon as any} size={scale(20)} color={colors.primary} />
         </View>
         <View style={styles.settingText}>
           <Text style={styles.settingTitle}>{title}</Text>
@@ -113,7 +115,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ user, onLogout }
   );
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+    <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
       {/* Profile Header */}
       <LinearGradient
         colors={['rgba(0, 102, 204, 0.2)', 'transparent']}
@@ -127,7 +130,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ user, onLogout }
             <Text style={styles.avatarText}>{user.name.charAt(0)}</Text>
           </LinearGradient>
           <TouchableOpacity style={styles.editAvatarBtn}>
-            <Ionicons name="camera" size={14} color="#fff" />
+            <Ionicons name="camera" size={scale(14)} color="#fff" />
           </TouchableOpacity>
         </View>
         <Text style={styles.userName}>{user.name}</Text>
@@ -139,7 +142,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ user, onLogout }
             </Text>
           </View>
           <View style={styles.sectorBadge}>
-            <Ionicons name="business-outline" size={12} color={colors.textMuted} />
+            <Ionicons name="business-outline" size={scale(12)} color={colors.textMuted} />
             <Text style={styles.sectorBadgeText}>{user.sector}</Text>
           </View>
         </View>
@@ -248,12 +251,12 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ user, onLogout }
           icon="cloud-download-outline" 
           title="Dados Offline"
           subtitle="12 MB armazenados"
-          rightElement={<Ionicons name="chevron-forward" size={20} color={colors.textMuted} />}
+          rightElement={<Ionicons name="chevron-forward" size={scale(20)} color={colors.textMuted} />}
         />
         <TouchableOpacity style={styles.settingRow} onPress={handleClearCache}>
           <View style={styles.settingLeft}>
             <View style={styles.settingIcon}>
-              <Ionicons name="trash-outline" size={20} color={colors.warning} />
+              <Ionicons name="trash-outline" size={scale(20)} color={colors.warning} />
             </View>
             <View style={styles.settingText}>
               <Text style={styles.settingTitle}>Limpar Cache</Text>
@@ -279,23 +282,23 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ user, onLogout }
         <SettingRow 
           icon="document-text-outline" 
           title="Termos de Uso"
-          rightElement={<Ionicons name="chevron-forward" size={20} color={colors.textMuted} />}
+          rightElement={<Ionicons name="chevron-forward" size={scale(20)} color={colors.textMuted} />}
         />
         <SettingRow 
           icon="shield-checkmark-outline" 
           title="Política de Privacidade"
-          rightElement={<Ionicons name="chevron-forward" size={20} color={colors.textMuted} />}
+          rightElement={<Ionicons name="chevron-forward" size={scale(20)} color={colors.textMuted} />}
         />
         <SettingRow 
           icon="help-circle-outline" 
           title="Central de Ajuda"
-          rightElement={<Ionicons name="chevron-forward" size={20} color={colors.textMuted} />}
+          rightElement={<Ionicons name="chevron-forward" size={scale(20)} color={colors.textMuted} />}
         />
       </Card>
 
       {/* Logout Button */}
       <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-        <Ionicons name="log-out-outline" size={20} color={colors.error} />
+        <Ionicons name="log-out-outline" size={scale(20)} color={colors.error} />
         <Text style={styles.logoutText}>Sair da Conta</Text>
       </TouchableOpacity>
 
@@ -305,6 +308,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ user, onLogout }
         <Text style={styles.footerSubtext}>© 2024 Universidade Estadual do Maranhão</Text>
       </View>
     </ScrollView>
+    </SafeAreaView>
   );
 };
 
@@ -313,27 +317,30 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  scrollView: {
+    flex: 1,
+  },
   content: {
-    paddingBottom: 100,
+    paddingBottom: scale(100) + getBottomSpace(),
   },
   profileHeader: {
     alignItems: 'center',
-    paddingVertical: spacing.xl,
-    paddingHorizontal: spacing.md,
+    paddingVertical: scale(24),
+    paddingHorizontal: scale(16),
   },
   avatarContainer: {
     position: 'relative',
-    marginBottom: spacing.md,
+    marginBottom: scale(12),
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: scale(80),
+    height: scale(80),
+    borderRadius: scale(40),
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 32,
+    fontSize: fontScale(32),
     fontWeight: '700',
     color: '#fff',
   },
@@ -341,9 +348,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: scale(28),
+    height: scale(28),
+    borderRadius: scale(14),
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -351,55 +358,56 @@ const styles = StyleSheet.create({
     borderColor: colors.background,
   },
   userName: {
-    ...typography.h3,
+    fontSize: fontScale(20),
+    fontWeight: '700',
     color: colors.textPrimary,
-    marginBottom: spacing.xs,
+    marginBottom: scale(4),
   },
   userEmail: {
-    ...typography.body,
+    fontSize: fontScale(15),
     color: colors.textMuted,
-    marginBottom: spacing.md,
+    marginBottom: scale(12),
   },
   badgeRow: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    gap: scale(10),
   },
   roleBadge: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.full,
+    paddingHorizontal: scale(12),
+    paddingVertical: scale(6),
+    borderRadius: scale(20),
   },
   roleBadgeText: {
-    ...typography.small,
+    fontSize: fontScale(13),
     fontWeight: '600',
   },
   sectorBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    gap: scale(4),
+    paddingHorizontal: scale(12),
+    paddingVertical: scale(6),
     backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: borderRadius.full,
+    borderRadius: scale(20),
     borderWidth: 1,
     borderColor: colors.border,
   },
   sectorBadgeText: {
-    ...typography.small,
+    fontSize: fontScale(13),
     color: colors.textMuted,
   },
   sectionTitle: {
-    ...typography.small,
+    fontSize: fontScale(12),
     color: colors.textMuted,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 1,
-    paddingHorizontal: spacing.md,
-    marginTop: spacing.lg,
-    marginBottom: spacing.sm,
+    paddingHorizontal: scale(16),
+    marginTop: scale(20),
+    marginBottom: scale(10),
   },
   settingCard: {
-    marginHorizontal: spacing.md,
+    marginHorizontal: scale(16),
     padding: 0,
     overflow: 'hidden',
   },
@@ -407,7 +415,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: spacing.md,
+    padding: scale(14),
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
@@ -415,12 +423,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    gap: spacing.md,
+    gap: scale(12),
   },
   settingIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: borderRadius.md,
+    width: scale(36),
+    height: scale(36),
+    borderRadius: scale(8),
     backgroundColor: colors.primary + '15',
     alignItems: 'center',
     justifyContent: 'center',
@@ -429,33 +437,33 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   settingTitle: {
-    ...typography.body,
+    fontSize: fontScale(15),
     color: colors.textPrimary,
   },
   settingSubtitle: {
-    ...typography.caption,
+    fontSize: fontScale(12),
     color: colors.textMuted,
-    marginTop: 2,
+    marginTop: scale(2),
   },
   modelBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
+    paddingHorizontal: scale(8),
+    paddingVertical: scale(2),
     backgroundColor: colors.success + '30',
-    borderRadius: borderRadius.sm,
+    borderRadius: scale(4),
   },
   modelBadgeText: {
-    ...typography.caption,
+    fontSize: fontScale(12),
     color: colors.success,
     fontWeight: '600',
   },
   versionBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
+    paddingHorizontal: scale(8),
+    paddingVertical: scale(2),
     backgroundColor: colors.info + '30',
-    borderRadius: borderRadius.sm,
+    borderRadius: scale(4),
   },
   versionBadgeText: {
-    ...typography.caption,
+    fontSize: fontScale(12),
     color: colors.info,
     fontWeight: '600',
   },
@@ -463,31 +471,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
-    marginHorizontal: spacing.md,
-    marginTop: spacing.xl,
-    paddingVertical: spacing.md,
+    gap: scale(10),
+    marginHorizontal: scale(16),
+    marginTop: scale(24),
+    paddingVertical: scale(14),
     backgroundColor: colors.error + '15',
-    borderRadius: borderRadius.md,
+    borderRadius: scale(8),
     borderWidth: 1,
     borderColor: colors.error + '30',
   },
   logoutText: {
-    ...typography.body,
+    fontSize: fontScale(15),
     color: colors.error,
     fontWeight: '600',
   },
   footer: {
     alignItems: 'center',
-    paddingVertical: spacing.xl,
+    paddingVertical: scale(24),
   },
   footerText: {
-    ...typography.body,
+    fontSize: fontScale(15),
     color: colors.textMuted,
   },
   footerSubtext: {
-    ...typography.caption,
+    fontSize: fontScale(12),
     color: colors.textMuted,
-    marginTop: spacing.xs,
+    marginTop: scale(4),
   },
 });

@@ -1,19 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { useFonts } from 'expo-font';
+import { Ionicons } from '@expo/vector-icons';
+import * as SplashScreen from 'expo-splash-screen';
 
 import { AppNavigator } from './src/navigation';
 import { User } from './src/types';
 import { colors } from './src/theme';
+
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const STORAGE_KEY = '@uema_user';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Load fonts including Ionicons
+  const [fontsLoaded] = useFonts({
+    ...Ionicons.font,
+  });
 
   useEffect(() => {
     loadStoredUser();
@@ -50,7 +61,14 @@ export default function App() {
     }
   };
 
-  if (isLoading) {
+  // Wait for fonts to load before showing content
+  const onLayoutRootView = useCallback(async () => {
+    if (fontsLoaded && !isLoading) {
+      await SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, isLoading]);
+
+  if (!fontsLoaded || isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -60,22 +78,42 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <NavigationContainer
-        theme={{
-          dark: true,
-          colors: {
-            primary: colors.primary,
-            background: colors.background,
-            card: colors.surface,
-            text: colors.textPrimary,
-            border: colors.border,
-            notification: colors.primary,
-          },
-        }}
-      >
-        <StatusBar style="light" />
-        <AppNavigator user={user} onLogin={handleLogin} onLogout={handleLogout} />
-      </NavigationContainer>
+      <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+        <NavigationContainer
+          theme={{
+            dark: true,
+            fonts: {
+              regular: {
+                fontFamily: 'System',
+                fontWeight: '400',
+              },
+              medium: {
+                fontFamily: 'System',
+                fontWeight: '500',
+              },
+              bold: {
+                fontFamily: 'System',
+                fontWeight: '700',
+              },
+              heavy: {
+                fontFamily: 'System',
+                fontWeight: '900',
+              },
+            },
+            colors: {
+              primary: colors.primary,
+              background: colors.background,
+              card: colors.surface,
+              text: colors.textPrimary,
+              border: colors.border,
+              notification: colors.primary,
+            },
+          }}
+        >
+          <StatusBar style="light" />
+          <AppNavigator user={user} onLogin={handleLogin} onLogout={handleLogout} />
+        </NavigationContainer>
+      </View>
     </SafeAreaProvider>
   );
 }
