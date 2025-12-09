@@ -7,6 +7,19 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+#env
+.env
+.env.local
+.env.*.local
+.env.test.local
+.env.production.local
+.env.development.local
+.env.staging.local
+.env.test
+.env.production
+.env.development
+.env.staging
+
 node_modules
 dist
 dist-ssr
@@ -22,3 +35,18 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+#data package files
+*.tgz
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+lerna.json
+rush.json
+.pnpm-store
+.yarnrc.yml
+.yarn/*
+.pnp.*
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks

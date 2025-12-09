@@ -15,11 +15,25 @@ import {
   BarChart3,
   X,
   FileSpreadsheet,
-  Loader2
+  Loader2,
+  CheckCircle,
+  AlertTriangle,
+  XCircle,
+  Info,
+  Trash2
 } from 'lucide-react';
 import { ViewState, User as UserType, Document, Process } from '../types';
 import { showToast } from '../App';
 import { storage } from '../services/storage';
+import { realtimeService, isSupabaseConfigured } from '../services/supabase';
+
+interface NotificationItem {
+  id: string | number;
+  text: string;
+  time: string;
+  unread: boolean;
+  type?: 'info' | 'success' | 'warning' | 'error';
+}
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -43,24 +57,112 @@ export const Layout: React.FC<LayoutProps> = ({
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const notificationRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   
-  const [notifications, setNotifications] = useState([
-    { id: 1, text: 'Seu processo foi aprovado.', time: '2 min atrás', unread: true },
-    { id: 2, text: 'Novo documento disponível na PROGEP.', time: '1h atrás', unread: false },
-    { id: 3, text: 'Reunião do conselho agendada.', time: '3h atrás', unread: true },
+  const [notifications, setNotifications] = useState<NotificationItem[]>([
+    { id: 1, text: 'Bem-vindo ao UEMA Digital!', time: 'Agora', unread: true, type: 'success' },
+    { id: 2, text: 'Sistema atualizado com novos recursos.', time: '1h atrás', unread: true, type: 'info' },
+    { id: 3, text: 'Confira os novos relatórios disponíveis.', time: '3h atrás', unread: false, type: 'info' },
   ]);
 
   const unreadCount = notifications.filter(n => n.unread).length;
 
-  // Fechar busca ao clicar fora
+  // Carregar notificações do servidor e configurar realtime
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-        setShowSearchResults(false);
+    const loadAndSubscribe = async () => {
+      if (isSupabaseConfigured() && currentUser?.id) {
+        try {
+          // Carregar notificações existentes
+          const serverNotifs = await realtimeService.getUnreadNotifications(currentUser.id);
+          if (serverNotifs.length > 0) {
+            const mapped: NotificationItem[] = serverNotifs.map(n => ({
+              id: n.id,
+              text: n.message,
+              time: formatTimeAgo(n.created_at),
+              unread: !n.read,
+              type: n.type
+            }));
+            setNotifications(prev => [...mapped, ...prev.filter(p => typeof p.id === 'number')]);
+          }
+          
+          // Inscrever para notificações em tempo real
+          const channel = realtimeService.subscribeToNotifications(currentUser.id, (notification) => {
+            const newNotif: NotificationItem = {
+              id: notification.id,
+              text: notification.message,
+              time: 'Agora',
+              unread: true,
+              type: notification.type
+            };
+            setNotifications(prev => [newNotif, ...prev]);
+            
+            // Mostrar notificação do browser se permitido
+            if ('Notification' in window && Notification.permission === 'granted') {
+              new Notification(notification.title, {
+                body: notification.message,
+                icon: '/favicon.ico'
+              });
+            }
+            
+            showToast(notification.message, notification.type || 'info');
+          });
+          
+          return () => {
+            realtimeService.unsubscribe(channel);
+          };
+        } catch (err) {
+          console.log('Notificações em modo local');
+        }
+      }
+      
+      // Solicitar permissão para notificações do browser
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    
+    loadAndSubscribe();
+  }, [currentUser?.id]);
+
+  // Formatar tempo relativo
+  const formatTimeAgo = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    
+    if (diffMins < 1) return 'Agora';
+    if (diffMins < 60) return `${diffMins} min atrás`;
+    if (diffHours < 24) return `${diffHours}h atrás`;
+    return `${diffDays}d atrás`;
+  };
+
+  // Fechar dropdowns ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      
+      if (searchRef.current && !searchRef.current.contains(target)) {
+        setShowSearchResults(false);
+      }
+      if (notificationRef.current && !notificationRef.current.contains(target)) {
+        setShowNotifications(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(target)) {
+        setShowUserMenu(false);
+      }
+    };
+    
+    // Usar setTimeout para evitar que o click do botão seja capturado
+    const handleClick = (event: MouseEvent) => {
+      setTimeout(() => handleClickOutside(event), 0);
+    };
+    
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
   }, []);
 
   // Busca global
@@ -110,9 +212,26 @@ export const Layout: React.FC<LayoutProps> = ({
     onChangeView(type === 'document' ? 'documents' : 'processes');
   };
 
-  const markAllRead = () => {
+  const markAllRead = async () => {
+    // Marcar no servidor se configurado
+    if (isSupabaseConfigured()) {
+      try {
+        await Promise.all(
+          notifications
+            .filter(n => n.unread && typeof n.id === 'string')
+            .map(n => realtimeService.markAsRead(String(n.id)))
+        );
+      } catch (err) {
+        console.log('Erro ao marcar como lidas no servidor');
+      }
+    }
+    
     setNotifications(notifications.map(n => ({...n, unread: false})));
     showToast('Todas notificações marcadas como lidas', 'info');
+  };
+
+  const deleteNotification = (id: string | number) => {
+    setNotifications(notifications.filter(n => n.id !== id));
   };
 
   const NavItem = ({ view, icon: Icon, label }: { view: ViewState; icon: any; label: string }) => {
@@ -215,7 +334,13 @@ export const Layout: React.FC<LayoutProps> = ({
                         <X size={14} />
                       </button>
                     ) : (
-                      <Search size={14} className="text-blue-100" />
+                      <button 
+                        type="button"
+                        onClick={() => document.querySelector<HTMLInputElement>('input[placeholder*="Buscar"]')?.focus()}
+                        className="text-blue-100 hover:text-white cursor-pointer"
+                      >
+                        <Search size={14} />
+                      </button>
                     )}
                 </div>
 
@@ -284,40 +409,63 @@ export const Layout: React.FC<LayoutProps> = ({
             </div>
 
             {/* Notificações */}
-            <div className="relative">
+            <div className="relative" ref={notificationRef}>
                 <button 
-                  onClick={() => { setShowNotifications(!showNotifications); setShowUserMenu(false); }}
+                  onClick={(e) => { 
+                    e.stopPropagation();
+                    setShowNotifications(prev => !prev); 
+                    setShowUserMenu(false); 
+                  }}
                   className="p-2 hover:bg-white/10 rounded-sm relative"
                 >
                   <Bell size={18} />
                   {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 w-4 h-3 bg-red-500 rounded text-[9px] flex items-center justify-center font-bold">{unreadCount}</span>
+                    <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full text-[9px] flex items-center justify-center font-bold">{unreadCount}</span>
                   )}
                 </button>
                 
                 {showNotifications && (
-                    <div className="absolute right-0 top-full mt-1 w-72 bg-white rounded-sm shadow-lg border border-gray-300 z-50 text-gray-800">
-                        <div className="px-3 py-2 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-                            <span className="font-bold text-xs text-gray-600">Notificações</span>
-                            <button onClick={markAllRead} className="text-xs text-blue-600 hover:underline">Limpar</button>
+                    <div 
+                      className="absolute right-0 top-full mt-2 w-80 bg-white rounded-lg shadow-2xl border border-gray-200 text-gray-800"
+                      style={{ zIndex: 9999 }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 rounded-t-lg flex justify-between items-center">
+                            <span className="font-bold text-sm text-gray-700">Notificações ({unreadCount} novas)</span>
+                            <button onClick={markAllRead} className="text-xs text-blue-600 hover:underline">Marcar como lidas</button>
                         </div>
-                        <div className="max-h-64 overflow-y-auto">
-                            {notifications.map(n => (
-                                <div key={n.id} className={`px-3 py-2 border-b border-gray-100 hover:bg-gray-50 flex gap-2 ${n.unread ? 'bg-blue-50' : ''}`}>
-                                    <Bell size={14} className="mt-1 text-gray-400" />
-                                    <div>
-                                        <p className="text-xs text-gray-800">{n.text}</p>
-                                        <p className="text-[10px] text-gray-400">{n.time}</p>
+                        <div className="max-h-80 overflow-y-auto">
+                            {notifications.length === 0 ? (
+                              <div className="px-4 py-8 text-center text-gray-500 text-sm">
+                                Nenhuma notificação
+                              </div>
+                            ) : (
+                              notifications.map(n => (
+                                <div key={n.id} className={`px-4 py-3 border-b border-gray-100 hover:bg-gray-50 flex gap-3 group cursor-pointer ${n.unread ? 'bg-blue-50' : ''}`}>
+                                    {n.type === 'success' ? <CheckCircle size={16} className="mt-0.5 text-green-500 flex-shrink-0" /> :
+                                     n.type === 'warning' ? <AlertTriangle size={16} className="mt-0.5 text-yellow-500 flex-shrink-0" /> :
+                                     n.type === 'error' ? <XCircle size={16} className="mt-0.5 text-red-500 flex-shrink-0" /> :
+                                     <Info size={16} className="mt-0.5 text-blue-500 flex-shrink-0" />}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm text-gray-800">{n.text}</p>
+                                        <p className="text-xs text-gray-400 mt-1">{n.time}</p>
                                     </div>
+                                    <button 
+                                      onClick={(e) => { e.stopPropagation(); deleteNotification(n.id); }}
+                                      className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-opacity p-1"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
                                 </div>
-                            ))}
+                              ))
+                            )}
                         </div>
                     </div>
                 )}
             </div>
 
             {/* Menu Usuário */}
-            <div className="relative border-l border-white/20 pl-4 ml-2">
+            <div className="relative border-l border-white/20 pl-4 ml-2" ref={userMenuRef}>
                 <button 
                     onClick={() => { setShowUserMenu(!showUserMenu); setShowNotifications(false); }}
                     className="flex items-center gap-2 hover:text-blue-100"

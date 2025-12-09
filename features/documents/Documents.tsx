@@ -16,10 +16,24 @@ import {
   File,
   Filter
 } from 'lucide-react';
-import { Document, SectorType } from '../../types';
+import { Document, SectorType, hasPermission, UserRole } from '../../types';
 import { showToast } from '../../App';
-import { storage } from '../../services/storage';
+import { storage, fileStorage } from '../../services/storage';
 import { aiService } from '../../services/ai';
+
+// Obter role do usuário atual
+const getCurrentUserRole = (): UserRole => {
+  try {
+    const userData = localStorage.getItem('uema_user_data');
+    if (userData) {
+      const user = JSON.parse(userData);
+      return user.role || 'Viewer';
+    }
+  } catch {
+    // ignore
+  }
+  return 'Viewer';
+};
 
 // Floating Document Card Component
 const FloatingDocCard = ({ 
@@ -189,6 +203,12 @@ export const Documents: React.FC = () => {
   const [docData, setDocData] = useState({ title: '', sector: SectorType.PROGEP, type: 'PDF' });
   const [generatedTags, setGeneratedTags] = useState<string[]>([]);
   const [generatedSummary, setGeneratedSummary] = useState('');
+  
+  // Permissões do usuário atual
+  const userRole = getCurrentUserRole();
+  const canCreate = hasPermission(userRole, 'canCreateDocument');
+  const canDelete = hasPermission(userRole, 'canDeleteDocument');
+  const canEdit = hasPermission(userRole, 'canEditDocument');
 
   useEffect(() => {
     const loadDocuments = async () => {
@@ -247,11 +267,15 @@ export const Documents: React.FC = () => {
     if (!file) return;
     setIsProcessing(true);
     try {
-      const docId = `d${Date.now()}`;
-      await storage.saveFile(docId, file);
+      const docId = crypto.randomUUID(); // Gerar UUID válido
+      const fileUrl = await storage.saveFile(docId, file); // Obter o path do arquivo salvo
       
-      let tags = generatedTags.length > 0 ? generatedTags : await aiService.generateTags(docData.title);
-      let summary = generatedSummary || await aiService.generateSummary(docData.title);
+      // Extrair conteúdo do arquivo para RAG
+      const extractedContent = await fileStorage.extractTextFromFile(file);
+      
+      // Gerar tags e resumo com base no conteúdo extraído
+      let tags = generatedTags.length > 0 ? generatedTags : await aiService.generateTags(docData.title, extractedContent);
+      let summary = generatedSummary || await aiService.generateSummary(docData.title, extractedContent);
       
       const newDoc: Document = {
         id: docId,
@@ -266,7 +290,9 @@ export const Documents: React.FC = () => {
         author: 'Você',
         size: file.size < 1024 * 1024 
           ? `${(file.size / 1024).toFixed(1)} KB`
-          : `${(file.size / 1024 / 1024).toFixed(1)} MB`
+          : `${(file.size / 1024 / 1024).toFixed(1)} MB`,
+        fileUrl: fileUrl, // Salvar o caminho do arquivo
+        content: extractedContent.substring(0, 3000) // Armazenar conteúdo extraído (limitado)
       };
       
       await storage.saveDocument(newDoc);
@@ -284,12 +310,14 @@ export const Documents: React.FC = () => {
 
   const handleDownload = async (doc: Document) => {
     try {
-      const fileData = await storage.getFile(doc.id);
+      // Usar fileUrl se disponível, senão tentar construir o caminho
+      const filePath = doc.fileUrl || `${doc.id}.${doc.type.toLowerCase()}`;
+      const fileData = await storage.getFile(filePath);
       if (fileData) {
         const url = URL.createObjectURL(fileData.data);
         const a = document.createElement('a');
         a.href = url;
-        a.download = fileData.name;
+        a.download = doc.title + '.' + doc.type.toLowerCase();
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -381,15 +409,21 @@ export const Documents: React.FC = () => {
           </div>
         </div>
         
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => setIsUploadModalOpen(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl text-white font-medium shadow-lg shadow-blue-500/25"
-        >
-          <Plus className="w-5 h-5" />
-          Novo Arquivo
-        </motion.button>
+        {canCreate ? (
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setIsUploadModalOpen(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl text-white font-medium shadow-lg shadow-blue-500/25"
+          >
+            <Plus className="w-5 h-5" />
+            Novo Arquivo
+          </motion.button>
+        ) : (
+          <div className="px-4 py-2 bg-white/5 rounded-xl text-white/40 text-sm">
+            Sem permissão para criar
+          </div>
+        )}
       </motion.div>
 
       {/* Documents Grid */}

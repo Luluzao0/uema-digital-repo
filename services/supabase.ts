@@ -134,3 +134,283 @@ export const isSupabaseConfigured = () => {
   return supabaseUrl && supabaseAnonKey && 
          supabaseUrl !== 'https://placeholder.supabase.co';
 };
+
+// ==========================================
+// AUTENTICAÇÃO SUPABASE AUTH
+// ==========================================
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name?: string;
+  role?: UserRole;
+  sector?: string;
+  avatarUrl?: string;
+}
+
+export interface AuthResult {
+  success: boolean;
+  user?: AuthUser;
+  error?: string;
+}
+
+// Serviço de Autenticação
+export const authService = {
+  // Login com email e senha
+  async signIn(email: string, password: string): Promise<AuthResult> {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      if (data.user) {
+        // Buscar perfil do usuário
+        const profile = await this.getProfile(data.user.id);
+        return {
+          success: true,
+          user: {
+            id: data.user.id,
+            email: data.user.email!,
+            name: profile?.name || email.split('@')[0],
+            role: profile?.role || 'user',
+            sector: profile?.sector,
+            avatarUrl: profile?.avatar_url,
+          },
+        };
+      }
+
+      return { success: false, error: 'Erro desconhecido' };
+    } catch (err) {
+      return { success: false, error: 'Erro ao conectar com o servidor' };
+    }
+  },
+
+  // Cadastro com email e senha
+  async signUp(email: string, password: string, name?: string): Promise<AuthResult> {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { name },
+        },
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      if (data.user) {
+        // Criar perfil do usuário
+        await supabase.from('profiles').upsert({
+          id: data.user.id,
+          email: data.user.email,
+          name: name || email.split('@')[0],
+          role: 'user',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+
+        return {
+          success: true,
+          user: {
+            id: data.user.id,
+            email: data.user.email!,
+            name: name || email.split('@')[0],
+            role: 'user',
+          },
+        };
+      }
+
+      return { success: false, error: 'Erro desconhecido' };
+    } catch (err) {
+      return { success: false, error: 'Erro ao criar conta' };
+    }
+  },
+
+  // Logout
+  async signOut(): Promise<void> {
+    await supabase.auth.signOut();
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('currentUserId');
+  },
+
+  // Verificar sessão atual
+  async getCurrentUser(): Promise<AuthUser | null> {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (user) {
+      const profile = await this.getProfile(user.id);
+      return {
+        id: user.id,
+        email: user.email!,
+        name: profile?.name || user.email!.split('@')[0],
+        role: profile?.role || 'user',
+        sector: profile?.sector,
+        avatarUrl: profile?.avatar_url,
+      };
+    }
+    
+    return null;
+  },
+
+  // Buscar perfil do usuário
+  async getProfile(userId: string): Promise<Profile | null> {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (error) return null;
+    return data;
+  },
+
+  // Atualizar perfil
+  async updateProfile(userId: string, updates: Partial<Profile>): Promise<boolean> {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', userId);
+
+    return !error;
+  },
+
+  // Recuperar senha
+  async resetPassword(email: string): Promise<{ success: boolean; error?: string }> {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  },
+
+  // Listener de mudanças de autenticação
+  onAuthStateChange(callback: (user: AuthUser | null) => void) {
+    return supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        const profile = await this.getProfile(session.user.id);
+        callback({
+          id: session.user.id,
+          email: session.user.email!,
+          name: profile?.name || session.user.email!.split('@')[0],
+          role: profile?.role || 'user',
+          sector: profile?.sector,
+          avatarUrl: profile?.avatar_url,
+        });
+      } else {
+        callback(null);
+      }
+    });
+  },
+};
+
+// ==========================================
+// REALTIME NOTIFICATIONS
+// ==========================================
+
+export interface RealtimeNotification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  link?: string;
+  createdAt: string;
+}
+
+export const realtimeService = {
+  // Inscrever para notificações em tempo real
+  subscribeToNotifications(
+    userId: string,
+    onNotification: (notification: RealtimeNotification) => void
+  ) {
+    return supabase
+      .channel('notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          const notification = payload.new as any;
+          onNotification({
+            id: notification.id,
+            title: notification.title,
+            message: notification.message,
+            type: notification.type,
+            link: notification.link,
+            createdAt: notification.created_at,
+          });
+        }
+      )
+      .subscribe();
+  },
+
+  // Inscrever para mudanças em documentos
+  subscribeToDocuments(onDocumentChange: (payload: any) => void) {
+    return supabase
+      .channel('documents')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'documents' },
+        onDocumentChange
+      )
+      .subscribe();
+  },
+
+  // Inscrever para mudanças em processos
+  subscribeToProcesses(onProcessChange: (payload: any) => void) {
+    return supabase
+      .channel('processes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'processes' },
+        onProcessChange
+      )
+      .subscribe();
+  },
+
+  // Cancelar inscrição
+  unsubscribe(channel: any) {
+    supabase.removeChannel(channel);
+  },
+
+  // Enviar notificação
+  async sendNotification(notification: Omit<Notification, 'id' | 'created_at'>): Promise<void> {
+    await supabase.from('notifications').insert({
+      ...notification,
+      created_at: new Date().toISOString(),
+    });
+  },
+
+  // Marcar notificação como lida
+  async markAsRead(notificationId: string): Promise<void> {
+    await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('id', notificationId);
+  },
+
+  // Buscar notificações não lidas
+  async getUnreadNotifications(userId: string): Promise<Notification[]> {
+    const { data } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('read', false)
+      .order('created_at', { ascending: false });
+
+    return data || [];
+  },
+};
