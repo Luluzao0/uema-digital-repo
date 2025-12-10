@@ -10,10 +10,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { Card } from '../components';
 import { colors, spacing, borderRadius, typography, shadows } from '../theme';
 import { storage } from '../services/storage';
-import { Document, Process, User } from '../types';
+import { Document, Process, User, ProcessStatus } from '../types';
 import { 
   scale, 
   fontScale, 
@@ -26,15 +28,30 @@ import {
   isTablet,
 } from '../utils/responsive';
 
+type MainTabParamList = {
+  Dashboard: undefined;
+  Documents: undefined;
+  Chat: undefined;
+  Processes: undefined;
+  Reports: undefined;
+  Settings: undefined;
+};
+
+type NavigationProp = BottomTabNavigationProp<MainTabParamList>;
+
 interface DashboardScreenProps {
   user: User;
-  onNavigate: (screen: string) => void;
 }
 
-export const DashboardScreen: React.FC<DashboardScreenProps> = ({ user, onNavigate }) => {
+export const DashboardScreen: React.FC<DashboardScreenProps> = ({ user }) => {
+  const navigation = useNavigation<NavigationProp>();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [processes, setProcesses] = useState<Process[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+
+  const navigateTo = (screen: keyof MainTabParamList) => {
+    navigation.navigate(screen);
+  };
 
   const loadData = async () => {
     await storage.init();
@@ -62,40 +79,40 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ user, onNaviga
       value: documents.length, 
       icon: 'document-text',
       gradient: ['#3c8dbc', '#2a6f94'],
-      onPress: () => onNavigate('Documents'),
+      onPress: () => navigateTo('Documents'),
     },
     { 
       label: 'Processos', 
       value: processes.length, 
       icon: 'git-branch',
       gradient: ['#00a65a', '#008d4c'],
-      onPress: () => onNavigate('Processes'),
+      onPress: () => navigateTo('Processes'),
     },
     { 
       label: 'Pendentes', 
-      value: processes.filter(p => p.status === 'Pending').length, 
+      value: processes.filter(p => p.status === ProcessStatus.PENDING).length, 
       icon: 'time',
       gradient: ['#f39c12', '#d68910'],
-      onPress: () => onNavigate('Processes'),
+      onPress: () => navigateTo('Processes'),
     },
     { 
-      label: 'Aprovados', 
-      value: processes.filter(p => p.status === 'Approved').length, 
+      label: 'Concluídos', 
+      value: processes.filter(p => p.status === ProcessStatus.COMPLETED).length, 
       icon: 'checkmark-circle',
       gradient: ['#00c0ef', '#00a0c0'],
-      onPress: () => onNavigate('Processes'),
+      onPress: () => navigateTo('Processes'),
     },
   ];
 
   const recentDocs = documents.slice(0, 3);
   const recentProcesses = processes.slice(0, 3);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: ProcessStatus) => {
     switch (status) {
-      case 'Approved': return colors.success;
-      case 'In Progress': return colors.info;
-      case 'Pending': return colors.warning;
-      case 'Rejected': return colors.error;
+      case ProcessStatus.COMPLETED: return colors.success;
+      case ProcessStatus.IN_PROGRESS: return colors.info;
+      case ProcessStatus.PENDING: return colors.warning;
+      case ProcessStatus.REJECTED: return colors.error;
       default: return colors.textMuted;
     }
   };
@@ -142,7 +159,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ user, onNaviga
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Documentos Recentes</Text>
-          <TouchableOpacity onPress={() => onNavigate('Documents')}>
+          <TouchableOpacity onPress={() => navigateTo('Documents')}>
             <Text style={styles.seeAll}>Ver todos</Text>
           </TouchableOpacity>
         </View>
@@ -183,7 +200,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ user, onNaviga
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Processos Recentes</Text>
-          <TouchableOpacity onPress={() => onNavigate('Processes')}>
+          <TouchableOpacity onPress={() => navigateTo('Processes')}>
             <Text style={styles.seeAll}>Ver todos</Text>
           </TouchableOpacity>
         </View>
@@ -205,7 +222,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ user, onNaviga
                 </View>
                 <View style={[styles.statusBadge, { backgroundColor: getStatusColor(proc.status) + '20' }]}>
                   <Text style={[styles.statusText, { color: getStatusColor(proc.status) }]}>
-                    {proc.status === 'In Progress' ? 'Em Prog.' : proc.status}
+                    {proc.status === ProcessStatus.IN_PROGRESS ? 'Em Prog.' : proc.status}
                   </Text>
                 </View>
               </View>
@@ -218,19 +235,19 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ user, onNaviga
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Ações Rápidas</Text>
         <View style={styles.actionsGrid}>
-          <TouchableOpacity style={styles.actionButton} onPress={() => onNavigate('Documents')}>
+          <TouchableOpacity style={styles.actionButton} onPress={() => navigateTo('Documents')}>
             <Ionicons name="add-circle" size={scale(24)} color={colors.primary} />
             <Text style={styles.actionText}>Novo Doc</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton} onPress={() => onNavigate('Processes')}>
+          <TouchableOpacity style={styles.actionButton} onPress={() => navigateTo('Processes')}>
             <Ionicons name="git-branch" size={scale(24)} color={colors.success} />
             <Text style={styles.actionText}>Processo</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton} onPress={() => onNavigate('Chat')}>
+          <TouchableOpacity style={styles.actionButton} onPress={() => navigateTo('Chat')}>
             <Ionicons name="chatbubbles" size={scale(24)} color={colors.info} />
             <Text style={styles.actionText}>Suporte</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton} onPress={() => onNavigate('Reports')}>
+          <TouchableOpacity style={styles.actionButton} onPress={() => navigateTo('Reports')}>
             <Ionicons name="bar-chart" size={scale(24)} color={colors.warning} />
             <Text style={styles.actionText}>Relatórios</Text>
           </TouchableOpacity>
