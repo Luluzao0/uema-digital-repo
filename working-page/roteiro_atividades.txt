@@ -1,0 +1,111 @@
+
+1
+
+Automatic Zoom
+ROTEIRO — ORIENTAÇÃO DO PROJETO FINAL (Análise e Projeto de Sistemas)
+O projeto consiste em desenvolver um Repositório Institucional Digital para organizar
+documentos e processos dos setores da universidade. Para isso, os alunos devem seguir
+as etapas essenciais abaixo, que representam o fluxo completo de um projeto real de
+Análise e Desenvolvimento de Sistemas.
+1. Planejamento Inicial
+Inicie o projeto com dois documentos fundamentais:
+Termo de Abertura do Projeto
+• Explica por que o sistema será desenvolvido
+• Define objetivo, escopo, responsável e stakeholders
+• Mostra os benefícios esperados
+Solicitação do Sistema
+• Registra a necessidade do sistema
+• Define requisitos de negócio, valor agregado e restrições
+2. Análise de Viabilidade
+Avalie se o projeto é possível:
+• Viabilidade Técnica: tecnologias, equipe, infraestrutura
+• Viabilidade Econômica: custos, tempo, benefícios esperados
+• Viabilidade Organizacional: impacto nos setores e aceitação dos usuários
+3. Levantamento e Análise de Requisitos
+Descreva o que o sistema deve fazer:
+Requisitos Funcionais: cadastro, consulta, upload, aprovação etc.
+• Requisitos Não Funcionais: segurança, desempenho, usabilidade
+• Perfis de Usuários: administrador, gestor, usuário comum
+• Casos de Uso: principais funcionalidades do sistema
+4. Modelagem do Sistema
+• Crie os principais diagramas UML:
+• Diagrama de Casos de Uso: visão geral das funcionalidades
+• Diagrama de Classes: estrutura lógica do sistema
+• Diagrama de Sequência: fluxo das operações principais
+• Modelagem do Banco de Dados: DER, modelo lógico e tabelas
+5. Planejamento do Projeto (ProjectLibre)
+• Monte o planejamento do desenvolvimento:
+• Crie a EAP (estrutura do projeto)
+• Liste tarefas e sub-tarefas
+• Defina durações e dependências
+• Gere o cronograma, o gráfico Gantt e o PERT
+6. Prototipação (Figma)
+• Desenhe as principais telas:
+• Login
+• Dashboard
+• Envio de documentos
+• Consulta e filtros
+• Aprovação
+• Gerenciamento de usuários
+• O protótipo serve para validar a interface antes de programar.
+7. Metodologia Scrum
+• Organize o projeto de forma ágil:
+• Product Backlog (lista de tudo que será feito)
+• Sprint Backlog (o que será feito em cada sprint)
+• Daily, Review e Retrospectiva
+8. Desenvolvimento
+• Crie o repositório e comece a implementação:
+• Estrutura das pastas (docs, src, db, tests...)
+• Backend com API e banco de dados
+• Frontend com interface de uso
+• Versionamento com Git e branches organizados
+9. Testes de Software
+• Teste o sistema para garantir qualidade:
+• Teste de unidade
+• Teste de integração
+• Teste de sistema
+• Teste de aceitação
+• Documente: objetivo, passos, resultado esperado e obtido.
+10. Entrega Final
+• Prepare os materiais obrigatórios:
+• Documentação completa
+• Diagramas
+• Protótipo
+• Código-fonte
+• Scripts SQL
+11. Relatório final
+• Apresentação do sistema funcionando
+12. Resumo Final
+Este roteiro orienta o grupo a seguir um processo completo de desenvolvimento:
+Planejar → Analisar → Modelar → Prototipar → Desenvolver → Testar → Entregar
+TÍTULO PROVISÓRIO
+Projeto Final Integrado: Desenvolvimento de Repositório Digital Institucional —
+Continuidade do Trabalho de Análise e Projeto de Sistemas
+RESUMO
+Este artigo apresenta a segunda etapa do desenvolvimento de um sistema de Repositório
+Digital Institucional, dando continuidade ao projeto iniciado na primeira fase da disciplina
+de Análise e Projeto de Sistemas. A etapa inicial do trabalho, já avaliada, contemplou o
+planejamento do projeto, análise de viabilidade, levantamento de requisitos, modelagem
+do sistema e construção do planejamento técnico utilizando o ProjectLibre. Nesta
+segunda fase — agora denominada Projeto Final — os estudantes deverão evoluir o
+sistema a partir da prototipação de interfaces no Figma, aplicação da metodologia
+ágil Scrum, desenvolvimento parcial das funcionalidades, realização dos testes de
+software e apresentação dos resultados. O objetivo é consolidar o processo completo
+de engenharia de software, oferecendo aos alunos uma experiência prática que integra
+métodos tradicionais e práticas modernas de produtividade.
+Palavras-chave: análise de sistemas, projeto de software, repositório digital, Scrum,
+prototipação, testes.
+1. INTRODUÇÃO
+O projeto de desenvolvimento do Repositório Digital Institucional teve início na primeira
+etapa da disciplina, com foco na fundamentação teórica e no planejamento estruturado de
+um sistema real aplicado ao contexto universitário. Os setores envolvidos — PROGEP,
+PROPLAD, PROEXAE, PROG, PPG e Protocolo Geral — necessitam de uma solução
+integrada de gestão, armazenamento e consulta de documentos e processos,
+centralizando informações institucionais e garantindo segurança, padronização e
+acessibilidade.
+Na primeira parte do projeto, já avaliada, os estudantes produziram o Termo de Abertura,
+a Solicitação do Sistema, a Análise de Viabilidade (técnica, econômica e organizacional),
+o Levantamento de Requisitos, a Modelagem do Sistema (incluindo casos de uso,
+diagramas UML e banco de dados) e o Planejamento do Projeto utilizando o ProjectLibre,
+com a construção da EAP, cronograma, Gantt e PERT. Estes elementos constituem a
+base conceitual e estrutural do sistema.

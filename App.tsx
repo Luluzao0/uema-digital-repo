@@ -20,10 +20,10 @@ export const showToast = (message: string, type: 'success' | 'error' | 'info' = 
 };
 
 const Toaster = () => {
-  const [toasts, setToasts] = useState<Array<{id: number, message: string, type: string}>>([]);
+  const [toasts, setToasts] = useState<Array<{ id: number, message: string, type: string }>>([]);
 
   useEffect(() => {
-    const handler = (e: CustomEvent<{message: string, type: string}>) => {
+    const handler = (e: CustomEvent<{ message: string, type: string }>) => {
       const id = Date.now();
       setToasts(prev => [...prev, { id, message: e.detail.message, type: e.detail.type }]);
       setTimeout(() => {
@@ -39,7 +39,7 @@ const Toaster = () => {
     <div className="fixed top-6 right-6 z-[60] flex flex-col gap-2 pointer-events-none">
       <AnimatePresence>
         {toasts.map(toast => (
-          <motion.div 
+          <motion.div
             key={toast.id}
             initial={{ opacity: 0, x: 100, scale: 0.8 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
@@ -87,7 +87,7 @@ const FloatingHeader = ({ userName, userPhoto }: { userName: string; userPhoto?:
           </motion.div>
         )}
       </AnimatePresence>
-      
+
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
@@ -190,7 +190,7 @@ const App: React.FC = () => {
         return <Settings />;
       default:
         return (
-          <motion.div 
+          <motion.div
             variants={pageVariants}
             initial="initial"
             animate="animate"
@@ -199,7 +199,7 @@ const App: React.FC = () => {
           >
             <h2 className="text-2xl font-bold text-white">Página não encontrada</h2>
             <p className="text-white/50 mt-2">A seção solicitada não está disponível.</p>
-            <motion.button 
+            <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setCurrentView('dashboard')}
@@ -219,12 +219,12 @@ const App: React.FC = () => {
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
       </div>
-      
+
       {/* Floating Header */}
       <FloatingHeader userName={CURRENT_USER.name} userPhoto={userPhoto} />
-      
+
       {/* Main Content */}
-      <main className="relative z-10 px-6 pt-6 pb-32 min-h-screen">
+      <main id="main-content" className="relative z-10 px-6 pt-6 pb-32 min-h-screen" role="main" aria-label="Conteúdo principal">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentView}
@@ -238,14 +238,14 @@ const App: React.FC = () => {
           </motion.div>
         </AnimatePresence>
       </main>
-      
+
       {/* Dock Navigation */}
-      <DockNavigation 
+      <DockNavigation
         currentPage={currentView}
         onNavigate={(page) => setCurrentView(page as ViewState)}
         onLogout={handleLogout}
       />
-      
+
       <Toaster />
     </div>
   );

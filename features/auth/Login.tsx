@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Mail, AlertCircle, Loader2, ArrowRight, Sparkles, UserPlus, ArrowLeft } from 'lucide-react';
-import { storage } from '../../services/storage';
+import { storage, mapRoleFromDb } from '../../services/storage';
 import { authService, isSupabaseConfigured } from '../../services/supabase';
 import { DEMO_USERS, CURRENT_USER } from '../../constants';
 
@@ -37,7 +37,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         });
       }
     };
-    
+
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
@@ -46,7 +46,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   useEffect(() => {
     const checkAuth = async () => {
       await storage.init();
-      
+
       // Verificar autenticação Supabase primeiro
       if (isSupabaseConfigured()) {
         const user = await authService.getCurrentUser();
@@ -56,7 +56,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             id: user.id,
             name: user.name || user.email.split('@')[0],
             email: user.email,
-            role: user.role as any || 'Operator',
+            role: mapRoleFromDb(user.role),
             sector: user.sector as any || 'PROGEP',
             avatarUrl: user.avatarUrl,
           });
@@ -64,11 +64,11 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           return;
         }
       }
-      
+
       // Fallback para verificação local
       const isAuth = await storage.isAuthenticated();
       const remembered = localStorage.getItem('uema_remember');
-      
+
       if (isAuth || remembered) {
         onLogin();
       } else {
@@ -102,7 +102,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       handleEmailSubmit();
       return;
     }
-    
+
     setError('');
     setSuccess('');
     setIsLoading(true);
@@ -127,14 +127,14 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           const result = await authService.signIn(email, password);
           if (result.success && result.user) {
             await storage.setAuthenticated(true);
-            
+
             // Salvar usuário (ignorar erros - não é crítico)
             try {
               await storage.saveUser({
                 id: result.user.id,
                 name: result.user.name || email.split('@')[0],
                 email: result.user.email,
-                role: result.user.role as any || 'Operator',
+                role: mapRoleFromDb(result.user.role),
                 sector: result.user.sector as any || 'PROGEP',
                 avatarUrl: result.user.avatarUrl,
               });
@@ -145,16 +145,16 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 id: result.user.id,
                 name: result.user.name || email.split('@')[0],
                 email: result.user.email,
-                role: 'Operator',
+                role: mapRoleFromDb(result.user.role),
                 sector: 'PROGEP',
               }));
             }
-            
+
             if (rememberMe) {
               localStorage.setItem('uema_remember', 'true');
               localStorage.setItem('uema_email', email);
             }
-            
+
             setIsLoading(false);
             onLogin();
             return;
@@ -189,19 +189,19 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           return;
         }
       }
-      
+
       // Fallback: modo simulado (demo) com usuários pré-configurados
       await new Promise(resolve => setTimeout(resolve, 800));
-      
+
       // Verificar se é um dos usuários demo
       const demoUser = DEMO_USERS[email as keyof typeof DEMO_USERS];
-      
+
       let userId: string;
       let userName: string;
       let userRole: string;
       let userSector: string;
       let avatarUrl: string;
-      
+
       if (demoUser) {
         // Usuário demo encontrado - usar dados pré-configurados
         userId = demoUser.id;
@@ -217,9 +217,9 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         userSector = 'PROGEP';
         avatarUrl = `https://picsum.photos/seed/${userId}/200/200`;
       }
-      
+
       await storage.setAuthenticated(true);
-      
+
       // Em modo demo, salvar apenas localmente (não no Supabase)
       localStorage.setItem('uema_user_data', JSON.stringify({
         id: userId,
@@ -253,12 +253,12 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       setError('Digite seu email primeiro.');
       return;
     }
-    
+
     if (isSupabaseConfigured()) {
       setIsLoading(true);
       const result = await authService.resetPassword(email);
       setIsLoading(false);
-      
+
       if (result.success) {
         setSuccess('Email de recuperação enviado! Verifique sua caixa de entrada.');
       } else {
@@ -292,7 +292,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   }
 
   return (
-    <div 
+    <div
       ref={containerRef}
       className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4 relative overflow-hidden"
     >
@@ -309,7 +309,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         }}
         transition={{ type: "spring", damping: 30, stiffness: 200 }}
       />
-      
+
       {/* Secondary gradient */}
       <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
       <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl" />
@@ -322,13 +322,13 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         className="relative z-10 w-full max-w-md"
       >
         {/* Logo/Title */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className="text-center mb-8"
         >
-          <motion.div 
+          <motion.div
             className="inline-flex items-center gap-2 mb-4"
             whileHover={{ scale: 1.05 }}
           >
@@ -337,16 +337,16 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             UEMA <span className="text-blue-400">Digital</span>
           </h1>
           <p className="text-white/50 mt-2 text-sm">
-            {authMode === 'register' 
-              ? 'Crie sua conta institucional' 
+            {authMode === 'register'
+              ? 'Crie sua conta institucional'
               : authMode === 'forgot'
-              ? 'Recupere sua senha'
-              : 'Repositório Digital Universitário'}
+                ? 'Recupere sua senha'
+                : 'Repositório Digital Universitário'}
           </p>
         </motion.div>
 
         {/* Form Card */}
-        <motion.div 
+        <motion.div
           className="glass rounded-3xl p-8"
           layout
         >
@@ -390,8 +390,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                       Email institucional
                     </label>
                     <div className="relative">
-                      <input 
-                        type="email" 
+                      <input
+                        type="email"
                         value={email}
                         onChange={e => setEmail(e.target.value)}
                         className="w-full px-4 py-3 pl-12 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all"
@@ -411,7 +411,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   className="space-y-4"
                 >
                   {/* Show email as badge */}
-                  <motion.div 
+                  <motion.div
                     className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -422,7 +422,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                       </div>
                       <span className="text-sm text-white/80">{email}</span>
                     </div>
-                    <button 
+                    <button
                       type="button"
                       onClick={() => setStep('email')}
                       className="text-xs text-blue-400 hover:text-blue-300"
@@ -438,8 +438,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                         Nome completo
                       </label>
                       <div className="relative">
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           value={name}
                           onChange={e => setName(e.target.value)}
                           className="w-full px-4 py-3 pl-12 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all"
@@ -455,8 +455,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                       {authMode === 'forgot' ? 'Nova senha' : 'Senha'}
                     </label>
                     <div className="relative">
-                      <input 
-                        type="password" 
+                      <input
+                        type="password"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
                         className="w-full px-4 py-3 pl-12 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all"
@@ -474,8 +474,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                         Confirmar senha
                       </label>
                       <div className="relative">
-                        <input 
-                          type="password" 
+                        <input
+                          type="password"
                           value={confirmPassword}
                           onChange={e => setConfirmPassword(e.target.value)}
                           className="w-full px-4 py-3 pl-12 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all"
@@ -490,8 +490,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     <div className="flex justify-between items-center">
                       <label className="flex items-center gap-2 text-sm text-white/60 cursor-pointer group">
                         <div className="relative">
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             checked={rememberMe}
                             onChange={e => setRememberMe(e.target.checked)}
                             className="peer sr-only"
@@ -513,7 +513,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                         </div>
                         Lembrar-me
                       </label>
-                      <button 
+                      <button
                         type="button"
                         className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
                         onClick={handleForgotPassword}
@@ -526,7 +526,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               )}
             </AnimatePresence>
 
-            <motion.button 
+            <motion.button
               type="submit"
               disabled={isLoading}
               whileHover={{ scale: 1.02 }}
@@ -548,7 +548,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </form>
 
           {/* Demo hint */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
@@ -557,11 +557,11 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             {authMode === 'login' ? (
               <>
                 <p className="text-xs text-white/40 mb-3">
-                  {isSupabaseConfigured() 
-                    ? 'Use suas credenciais UEMA para acessar' 
+                  {isSupabaseConfigured()
+                    ? 'Use suas credenciais UEMA para acessar'
                     : 'Demo: Selecione um perfil ou use qualquer @uema.br'}
                 </p>
-                
+
                 {/* Cards de usuários demo */}
                 {!isSupabaseConfigured() && (
                   <div className="grid grid-cols-2 gap-2 mb-4">
@@ -577,9 +577,9 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                         className="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-blue-500/50 transition-all text-left group"
                       >
                         <div className="flex items-center gap-2">
-                          <img 
-                            src={user.avatarUrl} 
-                            className="w-8 h-8 rounded-full border border-white/20" 
+                          <img
+                            src={user.avatarUrl}
+                            className="w-8 h-8 rounded-full border border-white/20"
                             alt={user.name}
                           />
                           <div className="min-w-0 flex-1">
@@ -588,22 +588,21 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                           </div>
                         </div>
                         <div className="mt-1">
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${
-                            user.role === 'Admin' ? 'bg-red-500/20 text-red-300' :
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${user.role === 'Admin' ? 'bg-red-500/20 text-red-300' :
                             user.role === 'Manager' ? 'bg-purple-500/20 text-purple-300' :
-                            user.role === 'Operator' ? 'bg-blue-500/20 text-blue-300' :
-                            'bg-gray-500/20 text-gray-300'
-                          }`}>
+                              user.role === 'Operator' ? 'bg-blue-500/20 text-blue-300' :
+                                'bg-gray-500/20 text-gray-300'
+                            }`}>
                             {user.role === 'Admin' ? 'Acesso Total' :
-                             user.role === 'Manager' ? 'Gerencia Setor' :
-                             user.role === 'Operator' ? 'Operações' : 'Somente Leitura'}
+                              user.role === 'Manager' ? 'Gerencia Setor' :
+                                user.role === 'Operator' ? 'Operações' : 'Somente Leitura'}
                           </span>
                         </div>
                       </button>
                     ))}
                   </div>
                 )}
-                
+
                 <button
                   type="button"
                   onClick={() => { setAuthMode('register'); resetForm(); }}
@@ -636,7 +635,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         </motion.div>
 
         {/* Footer */}
-        <motion.p 
+        <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}

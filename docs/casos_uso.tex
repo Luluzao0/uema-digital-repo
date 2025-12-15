@@ -1,0 +1,137 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[brazil]{babel}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+
+\title{\textbf{Especificação de Casos de Uso}\\Repositório Digital Institucional UEMA}
+\author{Universidade Estadual do Maranhão}
+\date{Dezembro 2025}
+
+\begin{document}
+\maketitle
+
+\section{UC01 - Realizar Login}
+\begin{itemize}
+    \item \textbf{Ator:} Usuário
+    \item \textbf{Pré-condição:} Usuário cadastrado no sistema
+    \item \textbf{Fluxo Principal:}
+    \begin{enumerate}
+        \item Usuário acessa a tela de login
+        \item Usuário informa email institucional
+        \item Sistema valida formato do email
+        \item Usuário informa senha
+        \item Sistema autentica credenciais
+        \item Sistema redireciona para Dashboard
+    \end{enumerate}
+    \item \textbf{Fluxo Alternativo:} Credenciais inválidas - exibir mensagem de erro
+    \item \textbf{Pós-condição:} Usuário autenticado no sistema
+\end{itemize}
+
+\section{UC02 - Enviar Documento}
+\begin{itemize}
+    \item \textbf{Ator:} Operador, Gestor, Admin
+    \item \textbf{Pré-condição:} Usuário autenticado
+    \item \textbf{Fluxo Principal:}
+    \begin{enumerate}
+        \item Usuário acessa módulo de Documentos
+        \item Usuário clica em ``Novo Documento''
+        \item Sistema exibe formulário de upload
+        \item Usuário seleciona arquivo (PDF, DOCX ou XLSX)
+        \item Usuário informa título e setor
+        \item Sistema faz upload para o storage
+        \item Sistema extrai texto e gera tags via IA
+        \item Sistema salva documento com status ``Rascunho''
+    \end{enumerate}
+    \item \textbf{Pós-condição:} Documento armazenado no sistema
+\end{itemize}
+
+\section{UC03 - Buscar Documento}
+\begin{itemize}
+    \item \textbf{Ator:} Todos os usuários
+    \item \textbf{Pré-condição:} Usuário autenticado
+    \item \textbf{Fluxo Principal:}
+    \begin{enumerate}
+        \item Usuário acessa módulo de Documentos
+        \item Usuário digita termo de busca
+        \item Sistema busca por título, tags e conteúdo
+        \item Sistema exibe lista de resultados
+        \item Usuário pode filtrar por setor, tipo ou status
+    \end{enumerate}
+    \item \textbf{Pós-condição:} Lista de documentos exibida
+\end{itemize}
+
+\section{UC04 - Criar Processo}
+\begin{itemize}
+    \item \textbf{Ator:} Operador, Gestor, Admin
+    \item \textbf{Pré-condição:} Usuário autenticado
+    \item \textbf{Fluxo Principal:}
+    \begin{enumerate}
+        \item Usuário acessa módulo de Processos
+        \item Usuário clica em ``Novo Processo''
+        \item Sistema gera número automático
+        \item Usuário informa título e prioridade
+        \item Sistema salva processo com status ``Pendente''
+    \end{enumerate}
+    \item \textbf{Pós-condição:} Processo criado e numerado
+\end{itemize}
+
+\section{UC05 - Aprovar/Rejeitar Processo}
+\begin{itemize}
+    \item \textbf{Ator:} Gestor, Admin
+    \item \textbf{Pré-condição:} Processo com status ``Pendente'' ou ``Em Andamento''
+    \item \textbf{Fluxo Principal:}
+    \begin{enumerate}
+        \item Usuário acessa detalhes do processo
+        \item Usuário analisa informações
+        \item Usuário clica em ``Aprovar'' ou ``Rejeitar''
+        \item Sistema atualiza status do processo
+        \item Sistema registra histórico da ação
+    \end{enumerate}
+    \item \textbf{Pós-condição:} Status do processo atualizado
+\end{itemize}
+
+\section{UC06 - Consultar Assistente IA}
+\begin{itemize}
+    \item \textbf{Ator:} Todos os usuários
+    \item \textbf{Pré-condição:} Usuário autenticado
+    \item \textbf{Fluxo Principal:}
+    \begin{enumerate}
+        \item Usuário acessa módulo de Chat
+        \item Usuário digita pergunta em linguagem natural
+        \item Sistema busca documentos relevantes (RAG)
+        \item Sistema envia contexto para API Gemini
+        \item Sistema exibe resposta com citações
+    \end{enumerate}
+    \item \textbf{Pós-condição:} Resposta exibida ao usuário
+\end{itemize}
+
+\section{UC07 - Visualizar Dashboard}
+\begin{itemize}
+    \item \textbf{Ator:} Todos os usuários
+    \item \textbf{Pré-condição:} Usuário autenticado
+    \item \textbf{Fluxo Principal:}
+    \begin{enumerate}
+        \item Sistema carrega estatísticas do banco
+        \item Sistema exibe total de documentos, processos e usuários
+        \item Sistema exibe gráficos de distribuição
+        \item Sistema exibe atividades recentes
+    \end{enumerate}
+    \item \textbf{Pós-condição:} Dashboard exibido
+\end{itemize}
+
+\section{UC08 - Gerar Relatório}
+\begin{itemize}
+    \item \textbf{Ator:} Gestor, Admin
+    \item \textbf{Pré-condição:} Usuário autenticado com permissão
+    \item \textbf{Fluxo Principal:}
+    \begin{enumerate}
+        \item Usuário acessa módulo de Relatórios
+        \item Usuário seleciona tipo de relatório
+        \item Sistema gera visualização com gráficos
+        \item Usuário pode exportar em PDF ou Excel
+    \end{enumerate}
+    \item \textbf{Pós-condição:} Relatório gerado/exportado
+\end{itemize}
+
+\end{document}
