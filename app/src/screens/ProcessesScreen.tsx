@@ -116,7 +116,7 @@ export const ProcessesScreen: React.FC<ProcessesScreenProps> = ({ user }) => {
       case ProcessStatus.IN_PROGRESS: return colors.warning;
       case ProcessStatus.COMPLETED: return colors.success;
       case ProcessStatus.PENDING: return colors.info;
-      case ProcessStatus.CANCELLED: return colors.error;
+      case ProcessStatus.REJECTED: return colors.error;
       default: return colors.textMuted;
     }
   };
@@ -135,7 +135,7 @@ export const ProcessesScreen: React.FC<ProcessesScreenProps> = ({ user }) => {
     [ProcessStatus.IN_PROGRESS]: 'Em Andamento',
     [ProcessStatus.PENDING]: 'Pendente',
     [ProcessStatus.COMPLETED]: 'Concluído',
-    [ProcessStatus.CANCELLED]: 'Cancelado',
+    [ProcessStatus.REJECTED]: 'Rejeitado',
   };
 
   const renderProcess = ({ item }: { item: Process }) => {

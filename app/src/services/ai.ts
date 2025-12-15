@@ -1,116 +1,72 @@
-import { COHERE_API_KEY } from '../config/env';
 import { Document } from '../types';
-
-const COHERE_URL = 'https://api.cohere.ai/v1';
 
 export const aiService = {
   async generateTags(text: string, title: string): Promise<string[]> {
-    if (!COHERE_API_KEY) {
-      // Fallback: gerar tags simples
-      const words = `${title} ${text}`.toLowerCase().split(/\s+/);
-      const common = ['documento', 'uema', 'processo', 'de', 'da', 'do', 'para', 'com', 'em', 'o', 'a', 'os', 'as'];
-      return [...new Set(words.filter(w => w.length > 3 && !common.includes(w)))].slice(0, 5);
-    }
-
-    try {
-      const response = await fetch(`${COHERE_URL}/generate`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${COHERE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'command',
-          prompt: `Analise o seguinte documento e gere 5 tags relevantes em português. Retorne apenas as tags separadas por vírgula, sem explicações.
-
-Título: ${title}
-Conteúdo: ${text.substring(0, 1000)}
-
-Tags:`,
-          max_tokens: 50,
-          temperature: 0.3,
-        }),
-      });
-
-      const data = await response.json();
-      const tagsText = data.generations?.[0]?.text || '';
-      return tagsText.split(',').map((t: string) => t.trim()).filter((t: string) => t.length > 0).slice(0, 5);
-    } catch (err) {
-      console.error('Erro ao gerar tags:', err);
-      return [];
-    }
+    // Gera tags baseadas no conteúdo
+    const words = `${title} ${text}`.toLowerCase().split(/\s+/);
+    const stopWords = ['documento', 'uema', 'processo', 'de', 'da', 'do', 'para', 'com', 'em', 'o', 'a', 'os', 'as', 'um', 'uma', 'que', 'no', 'na', 'por', 'se', 'ao', 'ou', 'e', 'como', 'este', 'esta'];
+    return [...new Set(words.filter(w => w.length > 3 && !stopWords.includes(w)))].slice(0, 5);
   },
 
   async generateSummary(text: string, title: string): Promise<string> {
-    if (!COHERE_API_KEY) {
-      return `Documento: ${title}. ${text.substring(0, 150)}...`;
-    }
-
-    try {
-      const response = await fetch(`${COHERE_URL}/generate`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${COHERE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'command',
-          prompt: `Faça um resumo conciso em português (máximo 2 frases) do seguinte documento:
-
-Título: ${title}
-Conteúdo: ${text.substring(0, 2000)}
-
-Resumo:`,
-          max_tokens: 100,
-          temperature: 0.3,
-        }),
-      });
-
-      const data = await response.json();
-      return data.generations?.[0]?.text?.trim() || '';
-    } catch (err) {
-      console.error('Erro ao gerar resumo:', err);
-      return '';
-    }
+    const preview = text.substring(0, 150).trim();
+    return `${title}: ${preview}${text.length > 150 ? '...' : ''}`;
   },
 
   async chat(message: string, context: Document[]): Promise<string> {
-    if (!COHERE_API_KEY) {
-      return 'Desculpe, o assistente de IA não está configurado. Configure a chave da API Cohere para usar este recurso.';
+    const msg = message.toLowerCase().trim();
+
+    // Saudações
+    if (/^(oi|olá|ola|hey|eai|e ai|bom dia|boa tarde|boa noite|opa|salve)/.test(msg)) {
+      return 'Olá! 👋 Como posso ajudar?\n\nExperimente:\n• "documentos" - listar docs\n• "processos" - ver status\n• "ajuda" - mais opções';
     }
 
-    try {
-      const contextText = context.map(d => 
-        `Documento: ${d.title}\nSetor: ${d.sector}\nTags: ${d.tags?.join(', ')}\nResumo: ${d.summary || 'N/A'}\nConteúdo: ${d.content?.substring(0, 500) || 'N/A'}`
-      ).join('\n\n---\n\n');
-
-      const response = await fetch(`${COHERE_URL}/chat`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${COHERE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'command',
-          message: message,
-          preamble: `Você é um assistente virtual do UEMA Digital, um sistema de gestão documental universitário. Responda em português de forma clara e objetiva. Use apenas as informações dos documentos fornecidos no contexto.
-
-CONTEXTO DOS DOCUMENTOS:
-${contextText}
-
-REGRAS:
-- Responda apenas com base nos documentos do contexto
-- Se não souber, diga que não encontrou a informação
-- Seja conciso e direto`,
-          temperature: 0.5,
-        }),
-      });
-
-      const data = await response.json();
-      return data.text || 'Não foi possível processar sua mensagem.';
-    } catch (err) {
-      console.error('Erro no chat:', err);
-      return 'Erro ao processar sua mensagem. Tente novamente.';
+    // Agradecimentos
+    if (/obrigad|valeu|thanks|vlw/.test(msg)) {
+      return 'Por nada! 😊 Precisa de mais alguma coisa?';
     }
+
+    // Ajuda
+    if (/ajuda|help|como|funciona|\?$/.test(msg)) {
+      return '📋 Posso ajudar com:\n\n• "documentos" - listar documentos\n• "processos" - informações de processos\n• "relatórios" - acessar relatórios\n• "resumo" - visão geral do sistema\n\nNavegue pelo menu inferior para acessar cada função.';
+    }
+
+    // Documentos
+    if (/documento|doc|arquivo|listar/.test(msg)) {
+      if (context.length === 0) {
+        return '📄 Nenhum documento encontrado.\n\nAcesse a aba "Documentos" para adicionar novos.';
+      }
+      const docs = context.slice(0, 5).map((d, i) => `${i + 1}. ${d.title}`).join('\n');
+      const extra = context.length > 5 ? `\n\n+${context.length - 5} documento(s)...` : '';
+      return `📄 ${context.length} documento(s):\n\n${docs}${extra}\n\nAcesse "Documentos" para ver todos.`;
+    }
+
+    // Processos
+    if (/processo|tramit|pendente|andamento/.test(msg)) {
+      return '📋 Para ver seus processos:\n\n1. Toque em "Processos" no menu\n2. Veja o status de cada um\n3. Filtre por situação\n\nLá você acompanha todo o andamento.';
+    }
+
+    // Relatórios
+    if (/relat|report|estatist|gráfico|grafico/.test(msg)) {
+      return '📊 Para acessar relatórios:\n\n1. Toque em "Relatórios" no menu\n2. Escolha o tipo de relatório\n3. Defina o período\n\nVocê pode exportar em PDF ou Excel.';
+    }
+
+    // Resumo/Status
+    if (/resumo|status|geral|total|quant/.test(msg)) {
+      return `📊 Resumo do Sistema:\n\n📄 Documentos: ${context.length}\n\nUse o menu inferior para navegar entre as funções.`;
+    }
+
+    // Configurações
+    if (/config|ajuste|setting|perfil/.test(msg)) {
+      return '⚙️ Para configurações:\n\nAcesse "Ajustes" no menu inferior.\nLá você pode:\n• Editar perfil\n• Alterar notificações\n• Sair da conta';
+    }
+
+    // Busca específica
+    if (/buscar|procurar|encontrar|pesquisar/.test(msg)) {
+      return '🔍 Para buscar:\n\n1. Acesse a aba desejada (Documentos/Processos)\n2. Use a barra de busca no topo\n3. Digite palavras-chave\n\nOs resultados aparecem em tempo real.';
+    }
+
+    // Resposta padrão mais amigável
+    return `Entendi: "${message.substring(0, 30)}${message.length > 30 ? '...' : ''}"\n\n🤔 Não tenho uma resposta específica, mas posso ajudar com:\n\n• "documentos"\n• "processos"\n• "ajuda"\n\nOu navegue pelo menu inferior.`;
   },
 };

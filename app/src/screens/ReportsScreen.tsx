@@ -6,6 +6,7 @@ import {
   ScrollView,
   RefreshControl,
   Dimensions,
+  ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -97,7 +98,7 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({ user }) => {
     color: string;
     trend?: { value: number; positive: boolean };
   }) => (
-    <Card style={[styles.statCard, { borderLeftColor: color, borderLeftWidth: 3 }]}>
+    <Card style={StyleSheet.flatten([styles.statCard, { borderLeftColor: color, borderLeftWidth: 3 }]) as ViewStyle}>
       <View style={[styles.statIconBox, { backgroundColor: color + '20' }]}>
         <Ionicons name={icon as any} size={scale(22)} color={color} />
       </View>

@@ -40,12 +40,25 @@ const roleToDb: Record<string, string> = {
 };
 
 // Mapeamento de roles (banco -> app)
+// Suporta tanto minúsculo (Supabase) quanto maiúsculo (schema.sql)
 const roleFromDb: Record<string, string> = {
   'admin': 'Admin',
+  'Admin': 'Admin',
   'manager': 'Manager',
+  'Manager': 'Manager',
   'user': 'Operator',
-  'viewer': 'Viewer'
+  'User': 'Operator',
+  'Operator': 'Operator',
+  'operator': 'Operator',
+  'viewer': 'Viewer',
+  'Viewer': 'Viewer'
 };
+
+// Função exportada para mapear role do banco para o formato da aplicação
+export function mapRoleFromDb(dbRole: string | undefined | null): 'Admin' | 'Manager' | 'Operator' | 'Viewer' {
+  if (!dbRole) return 'Operator';
+  return (roleFromDb[dbRole] || 'Operator') as 'Admin' | 'Manager' | 'Operator' | 'Viewer';
+}
 
 // ==========================================
 // SUPABASE STORAGE (FILES) SERVICE
@@ -175,7 +188,7 @@ export const fileStorage = {
     if (file.type === 'text/plain') {
       return await file.text();
     }
-    
+
     // Para PDFs - tentar extrair texto básico
     if (file.type === 'application/pdf') {
       try {
@@ -188,10 +201,10 @@ export const fileStorage = {
         console.log('PDF text extraction failed, using metadata');
       }
     }
-    
+
     // Para documentos Word
-    if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
-        file.name.endsWith('.docx')) {
+    if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      file.name.endsWith('.docx')) {
       try {
         const arrayBuffer = await file.arrayBuffer();
         const text = await this.extractTextFromDOCX(arrayBuffer);
@@ -202,7 +215,7 @@ export const fileStorage = {
         console.log('DOCX text extraction failed, using metadata');
       }
     }
-    
+
     // Para outros tipos, retornar metadados
     return `Documento: ${file.name} (${file.type})`;
   },
@@ -211,11 +224,11 @@ export const fileStorage = {
   async extractTextFromPDF(arrayBuffer: ArrayBuffer): Promise<string> {
     const bytes = new Uint8Array(arrayBuffer);
     const text: string[] = [];
-    
+
     // Buscar por streams de texto no PDF
     let inText = false;
     let currentText = '';
-    
+
     for (let i = 0; i < bytes.length - 1; i++) {
       // Detectar início de texto (BT) e fim (ET)
       if (bytes[i] === 66 && bytes[i + 1] === 84) { // BT
@@ -230,13 +243,13 @@ export const fileStorage = {
         inText = false;
         continue;
       }
-      
+
       // Capturar caracteres imprimíveis
       if (inText && bytes[i] >= 32 && bytes[i] <= 126) {
         currentText += String.fromCharCode(bytes[i]);
       }
     }
-    
+
     // Também buscar por texto entre parênteses (formato comum em PDFs)
     const stringContent = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
     const matches = stringContent.match(/\(([^)]{3,})\)/g);
@@ -248,7 +261,7 @@ export const fileStorage = {
         }
       });
     }
-    
+
     return text.join(' ').substring(0, 5000); // Limitar tamanho
   },
 
@@ -259,7 +272,7 @@ export const fileStorage = {
       // Esta é uma extração simplificada - procura por texto XML
       const bytes = new Uint8Array(arrayBuffer);
       const content = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
-      
+
       // Buscar por conteúdo de texto no XML
       const textMatches = content.match(/<w:t[^>]*>([^<]+)<\/w:t>/g);
       if (textMatches) {
@@ -269,7 +282,7 @@ export const fileStorage = {
           .join(' ');
         return text.substring(0, 5000);
       }
-      
+
       return '';
     } catch (e) {
       return '';
@@ -326,15 +339,15 @@ class SupabaseStorageService {
     try {
       // Mapear sector do app para o banco
       const dbSector = doc.sector ? sectorToDb[doc.sector] || null : null;
-      
+
       // Obter o usuário autenticado do Supabase para o author_id
       const { data: { user } } = await supabase.auth.getUser();
       const authorId = user?.id || this.currentUserId;
-      
+
       if (!authorId) {
         console.warn('No authenticated user found - document will be saved without author_id');
       }
-      
+
       const { error } = await supabase
         .from('documents')
         .upsert({
@@ -454,14 +467,14 @@ class SupabaseStorageService {
   async saveProcess(proc: Process): Promise<void> {
     // Gerar número do processo se não existir
     const processNumber = proc.number || `PROC-${Date.now().toString().slice(-8)}`;
-    
+
     // Mapear currentStep para sector do banco (se for um setor válido)
     const dbSector = proc.currentStep ? sectorToDb[proc.currentStep] || null : null;
-    
+
     // Obter o usuário autenticado do Supabase para o requester_id
     const { data: { user } } = await supabase.auth.getUser();
     const requesterId = user?.id || this.currentUserId;
-    
+
     const { error } = await supabase
       .from('processes')
       .upsert({
@@ -526,7 +539,7 @@ class SupabaseStorageService {
     // Obter o usuário autenticado do Supabase
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id || this.currentUserId;
-    
+
     if (!userId) {
       console.warn('No user logged in for chat sessions');
       return [];
@@ -578,7 +591,7 @@ class SupabaseStorageService {
   async saveChatSession(session: ChatSession): Promise<void> {
     // Obter o usuário autenticado do Supabase
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     // Se não há usuário autenticado no Supabase, salvar apenas localmente
     if (!user?.id) {
       console.log('No authenticated Supabase user - chat session saved locally only');
@@ -691,7 +704,7 @@ class SupabaseStorageService {
     // Obter o usuário autenticado do Supabase
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id || this.currentUserId;
-    
+
     if (!userId) return null;
 
     const { data, error } = await supabase
@@ -727,7 +740,7 @@ class SupabaseStorageService {
     // Obter o usuário autenticado do Supabase
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id || this.currentUserId;
-    
+
     if (!userId) {
       console.error('No user logged in');
       return;
@@ -764,7 +777,7 @@ class SupabaseStorageService {
     // O usuário precisa existir em auth.users primeiro (via Supabase Auth)
     const dbRole = roleToDb[user.role] || 'user';
     const dbSector = user.sector ? sectorToDb[user.sector] || null : null;
-    
+
     const { error: profileError } = await supabase
       .from('profiles')
       .upsert({

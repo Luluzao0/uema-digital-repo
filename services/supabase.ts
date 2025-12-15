@@ -131,8 +131,8 @@ export interface Notification {
 
 // Verificar se Supabase está configurado
 export const isSupabaseConfigured = () => {
-  return supabaseUrl && supabaseAnonKey && 
-         supabaseUrl !== 'https://placeholder.supabase.co';
+  return supabaseUrl && supabaseAnonKey &&
+    supabaseUrl !== 'https://placeholder.supabase.co';
 };
 
 // ==========================================
@@ -243,7 +243,7 @@ export const authService = {
   // Verificar sessão atual
   async getCurrentUser(): Promise<AuthUser | null> {
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (user) {
       const profile = await this.getProfile(user.id);
       return {
@@ -255,7 +255,7 @@ export const authService = {
         avatarUrl: profile?.avatar_url,
       };
     }
-    
+
     return null;
   },
 

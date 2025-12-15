@@ -4,9 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { StyleSheet, Platform, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { scale, fontScale, getBottomSpace, screenHeight } from '../utils/responsive';
+import { scale, fontScale, getBottomSpace } from '../utils/responsive';
 
 import {
   LoginScreen,
@@ -30,6 +28,7 @@ export type MainTabParamList = {
   Documents: undefined;
   Chat: undefined;
   Processes: undefined;
+  Reports: undefined;
   Settings: undefined;
 };
 
@@ -42,12 +41,6 @@ interface MainTabsProps {
 }
 
 const MainTabs: React.FC<MainTabsProps> = ({ user, onLogout }) => {
-  const navigation = useNavigation<any>();
-  
-  const handleNavigate = (screen: string) => {
-    navigation.navigate(screen);
-  };
-
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -67,6 +60,9 @@ const MainTabs: React.FC<MainTabsProps> = ({ user, onLogout }) => {
               break;
             case 'Processes':
               iconName = focused ? 'git-network' : 'git-network-outline';
+              break;
+            case 'Reports':
+              iconName = focused ? 'bar-chart' : 'bar-chart-outline';
               break;
             case 'Settings':
               iconName = focused ? 'settings' : 'settings-outline';
@@ -94,7 +90,7 @@ const MainTabs: React.FC<MainTabsProps> = ({ user, onLogout }) => {
         name="Dashboard"
         options={{ tabBarLabel: 'Início' }}
       >
-        {() => <DashboardScreen user={user} onNavigate={handleNavigate} />}
+        {() => <DashboardScreen user={user} />}
       </Tab.Screen>
       <Tab.Screen
         name="Documents"
@@ -113,6 +109,12 @@ const MainTabs: React.FC<MainTabsProps> = ({ user, onLogout }) => {
         options={{ tabBarLabel: 'Processos' }}
       >
         {() => <ProcessesScreen user={user} />}
+      </Tab.Screen>
+      <Tab.Screen
+        name="Reports"
+        options={{ tabBarLabel: 'Relatórios' }}
+      >
+        {() => <ReportsScreen user={user} />}
       </Tab.Screen>
       <Tab.Screen
         name="Settings"

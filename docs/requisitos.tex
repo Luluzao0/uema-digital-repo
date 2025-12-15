@@ -1,0 +1,114 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[brazil]{babel}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{longtable}
+\usepackage{booktabs}
+
+\title{\textbf{Documento de Requisitos}\\Repositório Digital Institucional UEMA}
+\author{Universidade Estadual do Maranhão}
+\date{Dezembro 2025}
+
+\begin{document}
+\maketitle
+
+\section{Requisitos Funcionais}
+
+\begin{longtable}{|p{1.5cm}|p{8cm}|p{2cm}|}
+\hline
+\textbf{ID} & \textbf{Descrição} & \textbf{Prioridade} \\
+\hline
+RF01 & O sistema deve permitir login com email e senha & Alta \\
+\hline
+RF02 & O sistema deve ter 4 níveis de acesso: Admin, Gestor, Operador, Visitante & Alta \\
+\hline
+RF03 & O sistema deve permitir upload de documentos PDF, DOCX e XLSX & Alta \\
+\hline
+RF04 & O sistema deve categorizar documentos por setor & Alta \\
+\hline
+RF05 & O sistema deve permitir busca por título, tags e conteúdo & Alta \\
+\hline
+RF06 & O sistema deve gerar tags automáticas via IA & Média \\
+\hline
+RF07 & O sistema deve gerar resumos de documentos via IA & Média \\
+\hline
+RF08 & O sistema deve permitir criar e gerenciar processos & Alta \\
+\hline
+RF09 & O sistema deve mostrar status de processos em tempo real & Alta \\
+\hline
+RF10 & O sistema deve ter assistente de IA para consultas & Média \\
+\hline
+RF11 & O sistema deve gerar relatórios com gráficos & Média \\
+\hline
+RF12 & O sistema deve permitir exportar relatórios & Baixa \\
+\hline
+RF13 & O sistema deve notificar usuários sobre atualizações & Baixa \\
+\hline
+\end{longtable}
+
+\section{Requisitos Não Funcionais}
+
+\begin{longtable}{|p{1.5cm}|p{8cm}|p{2cm}|}
+\hline
+\textbf{ID} & \textbf{Descrição} & \textbf{Categoria} \\
+\hline
+RNF01 & O sistema deve carregar em menos de 3 segundos & Desempenho \\
+\hline
+RNF02 & O sistema deve funcionar em Chrome, Firefox e Edge & Portabilidade \\
+\hline
+RNF03 & O sistema deve usar HTTPS para comunicação & Segurança \\
+\hline
+RNF04 & O sistema deve criptografar senhas com hash & Segurança \\
+\hline
+RNF05 & O sistema deve ter interface responsiva & Usabilidade \\
+\hline
+RNF06 & O sistema deve estar disponível 99\% do tempo & Confiabilidade \\
+\hline
+RNF07 & O sistema deve fazer backup diário & Confiabilidade \\
+\hline
+RNF08 & O sistema deve ter design acessível (contraste) & Acessibilidade \\
+\hline
+\end{longtable}
+
+\section{Perfis de Usuário}
+
+\subsection{Administrador (Admin)}
+\begin{itemize}
+    \item Acesso total ao sistema
+    \item Gerencia usuários e permissões
+    \item Visualiza todos os setores
+\end{itemize}
+
+\subsection{Gestor (Manager)}
+\begin{itemize}
+    \item Gerencia documentos do seu setor
+    \item Aprova/rejeita processos
+    \item Visualiza relatórios
+\end{itemize}
+
+\subsection{Operador (Operator)}
+\begin{itemize}
+    \item Cria e edita documentos próprios
+    \item Cria processos
+    \item Não pode aprovar ou excluir
+\end{itemize}
+
+\subsection{Visitante (Viewer)}
+\begin{itemize}
+    \item Apenas visualização
+    \item Pode usar o chat de IA
+    \item Sem permissão de edição
+\end{itemize}
+
+\section{Regras de Negócio}
+
+\begin{enumerate}
+    \item RN01: Documentos só podem ser publicados por Admin ou Gestor
+    \item RN02: Processos rejeitados podem ser reabertos pelo solicitante
+    \item RN03: Arquivos devem ter no máximo 50MB
+    \item RN04: Sessão expira após 30 minutos de inatividade
+    \item RN05: Histórico de alterações deve ser mantido por 2 anos
+\end{enumerate}
+
+\end{document}

@@ -7,65 +7,22 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Image,
-  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Input } from '../components';
-import { colors, spacing, borderRadius, typography } from '../theme';
+import { colors, spacing } from '../theme';
 import { 
   scale, 
-  moderateScale, 
   fontScale, 
-  wp, 
   hp, 
-  screenWidth,
   getBottomSpace,
   isSmallDevice,
-  getColumnWidth,
 } from '../utils/responsive';
-import { authService, isSupabaseConfigured } from '../services/supabase';
+import { isSupabaseConfigured } from '../services/supabase';
 import { storage } from '../services/storage';
-import { SectorType, User } from '../types';
-
-// Demo users
-const DEMO_USERS = {
-  'admin@uema.br': {
-    id: 'u1',
-    name: 'Luis Guilherme',
-    email: 'admin@uema.br',
-    role: 'Admin' as const,
-    sector: SectorType.PROGEP,
-    avatarUrl: 'https://picsum.photos/id/1/200/200',
-  },
-  'gestor@uema.br': {
-    id: 'u2',
-    name: 'Maria Santos',
-    email: 'gestor@uema.br',
-    role: 'Manager' as const,
-    sector: SectorType.PROPLAD,
-    avatarUrl: 'https://picsum.photos/id/64/200/200',
-  },
-  'usuario@uema.br': {
-    id: 'u3',
-    name: 'João Silva',
-    email: 'usuario@uema.br',
-    role: 'Operator' as const,
-    sector: SectorType.PROTOCOLO,
-    avatarUrl: 'https://picsum.photos/id/91/200/200',
-  },
-  'visitante@uema.br': {
-    id: 'u4',
-    name: 'Ana Costa',
-    email: 'visitante@uema.br',
-    role: 'Viewer' as const,
-    sector: SectorType.PROG,
-    avatarUrl: 'https://picsum.photos/id/177/200/200',
-  },
-};
+import { User } from '../types';
 
 interface LoginScreenProps {
   onLogin: (user: User) => void;
@@ -93,50 +50,26 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     setError('');
 
     try {
-      // Tentar login no Supabase
-      if (isSupabaseConfigured()) {
-        const result = await authService.signIn(email, password);
-        if (result.success && result.user) {
-          await storage.setAuthenticated(true);
-          await storage.saveUser(result.user as User);
-          onLogin(result.user as User);
-          return;
-        }
+      if (!isSupabaseConfigured()) {
+        setError('Sistema não configurado. Configure as variáveis de ambiente do Supabase.');
+        setIsLoading(false);
+        return;
       }
 
-      // Modo demo
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Login com Supabase
+      const user = await storage.login(email, password);
       
-      const demoUser = DEMO_USERS[email as keyof typeof DEMO_USERS];
-      
-      if (demoUser) {
-        await storage.setAuthenticated(true);
-        await storage.saveUser(demoUser);
-        onLogin(demoUser);
-      } else {
-        // Criar usuário genérico
-        const user: User = {
-          id: `user_${Date.now()}`,
-          name: email.split('@')[0].replace('.', ' '),
-          email,
-          role: 'Operator',
-          sector: SectorType.PROGEP,
-          avatarUrl: `https://picsum.photos/seed/${Date.now()}/200/200`,
-        };
-        await storage.setAuthenticated(true);
-        await storage.saveUser(user);
+      if (user) {
         onLogin(user);
+      } else {
+        setError('Email ou senha incorretos');
       }
     } catch (err) {
-      setError('Erro ao fazer login');
+      console.error('Erro no login:', err);
+      setError('Erro ao fazer login. Tente novamente.');
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const selectDemoUser = (userEmail: string) => {
-    setEmail(userEmail);
-    setPassword('demo123');
   };
 
   return (
@@ -208,46 +141,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
               loading={isLoading}
               style={{ marginTop: spacing.md }}
             />
+
+            <TouchableOpacity style={styles.forgotPassword}>
+              <Text style={styles.forgotPasswordText}>Esqueceu a senha?</Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Demo Users */}
-          <View style={styles.demoSection}>
-            <Text style={styles.demoTitle}>Acesso rápido (Demo)</Text>
-            <View style={styles.demoGrid}>
-              {Object.entries(DEMO_USERS).map(([userEmail, user]) => (
-                <TouchableOpacity
-                  key={userEmail}
-                  style={styles.demoCard}
-                  onPress={() => selectDemoUser(userEmail)}
-                  activeOpacity={0.7}
-                >
-                  <Image
-                    source={{ uri: user.avatarUrl }}
-                    style={styles.demoAvatar}
-                  />
-                  <Text style={styles.demoName} numberOfLines={1}>{user.name}</Text>
-                  <View style={[
-                    styles.roleBadge,
-                    { backgroundColor: 
-                      user.role === 'Admin' ? colors.error + '30' :
-                      user.role === 'Manager' ? colors.info + '30' :
-                      user.role === 'Operator' ? colors.success + '30' :
-                      colors.warning + '30'
-                    }
-                  ]}>
-                    <Text style={[
-                      styles.roleText,
-                      { color: 
-                        user.role === 'Admin' ? colors.error :
-                        user.role === 'Manager' ? colors.info :
-                        user.role === 'Operator' ? colors.success :
-                        colors.warning
-                      }
-                    ]}>{user.role}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
+          {/* Info */}
+          <View style={styles.infoSection}>
+            <Ionicons name="information-circle-outline" size={20} color={colors.textMuted} />
+            <Text style={styles.infoText}>
+              Use suas credenciais institucionais para acessar o sistema.
+            </Text>
           </View>
 
           <Text style={styles.footer}>© 2025 UEMA Digital</Text>
@@ -317,53 +222,28 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: scale(16),
   },
-  demoSection: {
-    marginTop: scale(32),
+  forgotPassword: {
+    alignSelf: 'center',
+    marginTop: scale(8),
   },
-  demoTitle: {
+  forgotPasswordText: {
     fontSize: fontScale(14),
-    color: colors.textMuted,
-    textAlign: 'center',
-    marginBottom: scale(16),
+    color: colors.primary,
   },
-  demoGrid: {
+  infoSection: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: scale(8),
-    justifyContent: 'center',
-  },
-  demoCard: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: scale(12),
-    padding: scale(12),
     alignItems: 'center',
-    width: getColumnWidth(2, 8),
-    minWidth: scale(140),
-    maxWidth: scale(180),
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  demoAvatar: {
-    width: scale(48),
-    height: scale(48),
-    borderRadius: scale(24),
-    marginBottom: scale(4),
-  },
-  demoName: {
-    fontSize: fontScale(14),
-    color: colors.textPrimary,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  roleBadge: {
-    paddingHorizontal: scale(8),
-    paddingVertical: scale(2),
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    padding: scale(16),
     borderRadius: scale(12),
-    marginTop: scale(4),
+    marginTop: scale(32),
+    gap: scale(12),
   },
-  roleText: {
-    fontSize: fontScale(10),
-    fontWeight: '600',
+  infoText: {
+    flex: 1,
+    fontSize: fontScale(13),
+    color: colors.textMuted,
+    lineHeight: fontScale(18),
   },
   footer: {
     fontSize: fontScale(12),
